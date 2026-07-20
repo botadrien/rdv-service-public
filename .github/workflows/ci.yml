@@ -205,8 +205,15 @@ jobs:
       - name: Cache parallel test feature spec runtime log
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          key: specs-runtime-log-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
-          path: tmp/parallel_runtime_rspec.log
+          # matrix.name est inclus explicitement dans la clé : unit_1 et unit_2 scannent le même
+          # dirname ("**"), donc hashFiles seul produirait la même clé pour les deux shards et un
+          # seul des deux pourrait sauvegarder son cache par run (l'autre le verrait "déjà existant").
+          # Avec une clé par shard, chacun garde son propre historique de runtime, dédié à son sous-
+          # ensemble de fichiers.
+          key: specs-runtime-log-${{ matrix.name }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
+          # .rspec_parallel écrit le runtime log ici (voir --out), pas au chemin par défaut de
+          # parallel_tests (tmp/parallel_runtime_rspec.log) : on cache donc le bon fichier.
+          path: tmp/rspec-parallel_runtime_rspec.log
       - name: Setup parallel tests
         run: RAILS_ENV=test bundle exec rake parallel:drop parallel:create parallel:load_schema
         env:
@@ -216,7 +223,21 @@ jobs:
           POSTGRES_PASSWORD: lapin_test
           POSTGRES_DB: lapin_test
       - name: Run feature specs shard
-        run: "RAILS_ENV=test bundle exec parallel_test spec --type rspec --pattern '${{ matrix.pattern }}' -n 2 --only-group ${{ matrix.only_group }}"
+        # Répartit les fichiers par temps d'exécution réel plutôt que par taille de fichier quand
+        # on a un log de runtime en cache (fallback sur filesize sinon : premier run, cache miss,
+        # ou après ajout/suppression de specs qui invalide la clé de cache).
+        # --allowed-missing 100 : le log peut être partiellement (voire pas du tout) à jour pour les
+        # fichiers de CE shard (ex. juste après un ajout de specs) sans faire planter le job ; les
+        # fichiers inconnus sont simplement estimés à la durée moyenne des fichiers connus.
+        run: |
+          if [ -s tmp/rspec-parallel_runtime_rspec.log ]; then
+            GROUP_BY=runtime
+            RUNTIME_LOG_ARGS="--runtime-log tmp/rspec-parallel_runtime_rspec.log --allowed-missing 100"
+          else
+            GROUP_BY=filesize
+            RUNTIME_LOG_ARGS=""
+          fi
+          RAILS_ENV=test bundle exec parallel_test spec --type rspec --pattern '${{ matrix.pattern }}' -n 2 --only-group ${{ matrix.only_group }} --group-by "$GROUP_BY" $RUNTIME_LOG_ARGS
         env:
           HOST: http://example.com
           POSTGRES_HOST: localhost
