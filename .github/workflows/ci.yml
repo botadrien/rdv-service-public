@@ -117,33 +117,41 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # On scinde chaque pattern de specs en 2 groupes (8 process au total au lieu de 4) 
+        # On scinde chaque pattern de specs en 2 groupes (8 process au total au lieu de 4)
+        # sibling_name : chaque shard restaure aussi le log de runtime de son binôme, pour que
+        # --group-by runtime ait une vision complète des deux moitiés au lieu de seulement la sienne.
         name: [unit_1, unit_2, feature_agents_1, feature_agents_2, feature_rest_1, feature_rest_2]
         include:
           - dirname: "**"
             pattern: "spec/(?!features)"
             only_group: 1
             name: unit_1
+            sibling_name: unit_2
           - dirname: "**"
             pattern: "spec/(?!features)"
             only_group: 2
             name: unit_2
+            sibling_name: unit_1
           - dirname: features/agents
             pattern: "spec/features/agents"
             only_group: 1
             name: feature_agents_1
+            sibling_name: feature_agents_2
           - dirname: features/agents
             pattern: "spec/features/agents"
             only_group: 2
             name: feature_agents_2
+            sibling_name: feature_agents_1
           - dirname: features
             pattern: "spec/features/(?!(agents|autodoc))"
             only_group: 1
             name: feature_rest_1
+            sibling_name: feature_rest_2
           - dirname: features
             pattern: "spec/features/(?!(agents|autodoc))"
             only_group: 2
             name: feature_rest_2
+            sibling_name: feature_rest_1
     services:
       postgres:
         image: postgres
@@ -202,6 +210,25 @@ jobs:
         run: RAILS_ENV=test bundle exec rails assets:precompile
       - name: Prepare runtime log cache key
         run: "ls spec/${{ matrix.dirname }}/**/*.rb > tmp/spec_${{ matrix.name }}_files.txt"
+      - name: Restore sibling shard's runtime log too
+        # Le cache "propre" ci-dessous ne contient que les temps des fichiers de CE shard (unit_1
+        # ne connaît jamais les temps de unit_2, par ex.). Pour que --group-by runtime calcule un
+        # partage 1-8 cohérent entre les deux shards, il faut une vision combinée des deux moitiés :
+        # on restaure d'abord (en lecture seule) le cache du binôme, à l'emplacement standard du
+        # runtime log (path doit matcher exactement ce qui a été utilisé à la sauvegarde du binôme),
+        # puis on le met de côté juste après pour ne pas l'écraser avec notre propre restore.
+        # matrix.name (et non matrix.sibling_name) est utilisé pour le hash car les deux shards d'une
+        # même catégorie scannent le même dirname : le hash du fichier généré par CE job est donc
+        # identique à celui que le binôme aurait généré lui-même.
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          key: specs-runtime-log-${{ matrix.sibling_name }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
+          path: tmp/rspec-parallel_runtime_rspec.log
+      - name: Set aside sibling's runtime log
+        run: |
+          if [ -f tmp/rspec-parallel_runtime_rspec.log ]; then
+            mv tmp/rspec-parallel_runtime_rspec.log tmp/sibling-runtime.log
+          fi
       - name: Cache parallel test feature spec runtime log
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
@@ -234,13 +261,15 @@ jobs:
         # se comporte comme attendu.
         run: |
           echo "== Débogage du cache de runtime =="
-          if [ -s tmp/rspec-parallel_runtime_rspec.log ]; then
-            echo "Log trouvé : $(wc -l < tmp/rspec-parallel_runtime_rspec.log) entrées"
-            echo "Somme des durées connues : $(awk -F: '{sum+=$NF} END {print sum}' tmp/rspec-parallel_runtime_rspec.log)s"
+          echo "Log propre à ce shard : $([ -f tmp/rspec-parallel_runtime_rspec.log ] && wc -l < tmp/rspec-parallel_runtime_rspec.log || echo 0) entrées"
+          echo "Log du binôme (${{ matrix.sibling_name }}) : $([ -f tmp/sibling-runtime.log ] && wc -l < tmp/sibling-runtime.log || echo 0) entrées"
+          cat tmp/sibling-runtime.log tmp/rspec-parallel_runtime_rspec.log > tmp/merged-runtime.log 2>/dev/null || true
+          if [ -s tmp/merged-runtime.log ]; then
+            echo "Log combiné : $(wc -l < tmp/merged-runtime.log) entrées, somme des durées connues : $(awk -F: '{sum+=$NF} END {print sum}' tmp/merged-runtime.log)s"
             GROUP_BY=runtime
-            RUNTIME_LOG_ARGS="--runtime-log tmp/rspec-parallel_runtime_rspec.log --allowed-missing 100"
+            RUNTIME_LOG_ARGS="--runtime-log tmp/merged-runtime.log --allowed-missing 100"
           else
-            echo "Log absent ou vide : repli sur --group-by filesize"
+            echo "Aucun log (ni le sien ni celui du binôme) : repli sur --group-by filesize"
             GROUP_BY=filesize
             RUNTIME_LOG_ARGS=""
           fi
