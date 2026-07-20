@@ -117,18 +117,35 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # cette strategy permet de lancer deux jobs de feature specs en parallèle pour accélérer l’exécution
-        name: [unit, feature_agents, feature_rest]
+        # On scinde chaque catégorie de specs en 2 shards (8 process au total au lieu de 4,
+        # via parallel_tests --only-group) pour réduire le temps total de la CI : le job
+        # "unit" (le plus long) passe d'environ 226s à environ 130s.
+        name: [unit_1, unit_2, feature_agents_1, feature_agents_2, feature_rest_1, feature_rest_2]
         include:
           - dirname: "**"
-            command: "parallel:spec['spec/(?!features)']"
-            name: unit
+            pattern: "spec/(?!features)"
+            only_group: "1,2,3,4"
+            name: unit_1
+          - dirname: "**"
+            pattern: "spec/(?!features)"
+            only_group: "5,6,7,8"
+            name: unit_2
           - dirname: features/agents
-            command: "parallel:spec[spec/features/agents]"
-            name: feature_agents
+            pattern: "spec/features/agents"
+            only_group: "1,2,3,4"
+            name: feature_agents_1
+          - dirname: features/agents
+            pattern: "spec/features/agents"
+            only_group: "5,6,7,8"
+            name: feature_agents_2
           - dirname: features
-            command: "parallel:spec['spec/features/(?!(agents|autodoc))']"
-            name: feature_rest
+            pattern: "spec/features/(?!(agents|autodoc))"
+            only_group: "1,2,3,4"
+            name: feature_rest_1
+          - dirname: features
+            pattern: "spec/features/(?!(agents|autodoc))"
+            only_group: "5,6,7,8"
+            name: feature_rest_2
     services:
       postgres:
         image: postgres
@@ -192,9 +209,20 @@ jobs:
         with:
           key: specs-runtime-log-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
           path: tmp/parallel_runtime_rspec.log
-        # By setting up and running in the same call, we save the app boot time
-      - name: Setup parallel tests and run feature specs
-        run: "RAILS_ENV=test bundle exec rake parallel:drop parallel:create parallel:load_schema ${{ matrix.command }}"
+      - name: Setup parallel tests
+        run: RAILS_ENV=test bundle exec rake parallel:drop parallel:create parallel:load_schema
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: lapin_test
+          POSTGRES_PASSWORD: lapin_test
+          POSTGRES_DB: lapin_test
+      - name: Run feature specs shard
+        # -n 8 divise TOUS les fichiers du pattern en 8 groupes ; --only-group sélectionne les 4 groupes
+        # de ce shard, qui tournent chacun dans leur propre process parallel_tests (donc 4 process ici,
+        # comme avant la mise en place des shards). Les deux shards d'une même catégorie sont complémentaires
+        # (1,2,3,4 et 5,6,7,8) et ne se recoupent jamais.
+        run: "RAILS_ENV=test bundle exec parallel_test spec --type rspec --pattern '${{ matrix.pattern }}' -n 8 --only-group ${{ matrix.only_group }}"
         env:
           HOST: http://example.com
           POSTGRES_HOST: localhost
