@@ -27,5 +27,10 @@ bin/setup
 echo "==> Préparation de la base de test (mode non-parallèle, utilisé par 'bundle exec rspec')…"
 RAILS_ENV=test bin/rails db:prepare
 
+# Requis pour les specs de feature (stylesheet_link_tag/javascript_include_tag lèvent une
+# erreur sans ça). cf l'étape "Precompile assets" de .github/workflows/ci.yml.
+echo "==> Précompilation des assets pour l'environnement de test…"
+RAILS_ENV=test bin/rails assets:precompile
+
 echo ""
 echo "Setup terminé : lance 'bundle exec rspec spec' pour lancer les tests."
