@@ -117,32 +117,35 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # On scinde chaque pattern de specs en 2 groupes (8 process au total au lieu de 4) 
+        # On scinde chaque catégorie en 2 shards, chacun avec 4 process parallel_tests (8 au total
+        # au lieu de 4). only_group liste 4 des 8 groupes formés par -n 8 : avec un seul groupe
+        # sélectionné (ex. "1"), parallel_tests ne lance qu'1 seul process, sans aucun parallélisme
+        # local — mesuré ~2-2.5x plus lent (185s vs 266s de temps total CI) que 4 groupes/4 process.
         name: [unit_1, unit_2, feature_agents_1, feature_agents_2, feature_rest_1, feature_rest_2]
         include:
           - dirname: "**"
             pattern: "spec/(?!features)"
-            only_group: 1
+            only_group: "1,2,3,4"
             name: unit_1
           - dirname: "**"
             pattern: "spec/(?!features)"
-            only_group: 2
+            only_group: "5,6,7,8"
             name: unit_2
           - dirname: features/agents
             pattern: "spec/features/agents"
-            only_group: 1
+            only_group: "1,2,3,4"
             name: feature_agents_1
           - dirname: features/agents
             pattern: "spec/features/agents"
-            only_group: 2
+            only_group: "5,6,7,8"
             name: feature_agents_2
           - dirname: features
             pattern: "spec/features/(?!(agents|autodoc))"
-            only_group: 1
+            only_group: "1,2,3,4"
             name: feature_rest_1
           - dirname: features
             pattern: "spec/features/(?!(agents|autodoc))"
-            only_group: 2
+            only_group: "5,6,7,8"
             name: feature_rest_2
     services:
       postgres:
@@ -216,7 +219,7 @@ jobs:
           POSTGRES_PASSWORD: lapin_test
           POSTGRES_DB: lapin_test
       - name: Run feature specs shard
-        run: "RAILS_ENV=test bundle exec parallel_test spec --type rspec --pattern '${{ matrix.pattern }}' -n 2 --only-group ${{ matrix.only_group }}"
+        run: "RAILS_ENV=test bundle exec parallel_test spec --type rspec --pattern '${{ matrix.pattern }}' -n 8 --only-group ${{ matrix.only_group }}"
         env:
           HOST: http://example.com
           POSTGRES_HOST: localhost
