@@ -7,8 +7,7 @@
   "containerEnv": {
     // Requis par certains modèles/jobs (cf app/models/domain.rb, jobs CRM) qui lisent
     // ENV["HOST"]. Même valeur que le job "tests" de .github/workflows/ci.yml.
-    "HOST": "http://example.com",
-    "PATH": "/home/vscode/.local/bin:/home/vscode/.local/share/mise/shims:${containerEnv:PATH}"
+    "HOST": "http://example.com"
   },
   "forwardPorts": [3000, 5432, 6379],
   "portsAttributes": {

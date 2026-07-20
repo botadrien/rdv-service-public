@@ -6,6 +6,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# postCreateCommand ne charge pas .bashrc : on met le PATH à jour explicitement
+# (mise, puis ses shims une fois `mise install` exécuté plus bas).
+export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
+
 # cf CI (.github/workflows/ci.yml) : évite https://github.com/rails/rails/issues/53661
 touch tmp/local_secret.txt
 openssl rand -hex 64 > tmp/local_secret.txt
