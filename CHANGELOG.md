@@ -2,3 +2,4 @@
 
 - Réduction de la flakiness des specs (voir https://github.com/betagouv/rdv-service-public/pull/6529 et le fix de `spec/models/concerns/text_search_spec.rb`).
 - Fixe l'ordre non déterministe des agents dans la vue multi-agent du planning (`set_agents` utilise désormais `in_order_of`).
+- CI : double le parallélisme des jobs de tests (unit/feature_agents/feature_rest) via `parallel_tests --only-group`, pour réduire le temps d'attente de la CI.
