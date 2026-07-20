@@ -256,25 +256,16 @@ jobs:
         # --allowed-missing 100 : le log peut être partiellement (voire pas du tout) à jour pour les
         # fichiers de CE shard (ex. juste après un ajout de specs) sans faire planter le job ; les
         # fichiers inconnus sont simplement estimés à la durée moyenne des fichiers connus.
-        # --verbose : affiche "Runtime found for X of Y tests" (couverture du cache) et la liste des
-        # fichiers assignés à ce process, pour vérifier facilement dans les logs CI que le mécanisme
-        # se comporte comme attendu.
         run: |
-          echo "== Débogage du cache de runtime =="
-          echo "Log propre à ce shard : $([ -f tmp/rspec-parallel_runtime_rspec.log ] && wc -l < tmp/rspec-parallel_runtime_rspec.log || echo 0) entrées"
-          echo "Log du binôme (${{ matrix.sibling_name }}) : $([ -f tmp/sibling-runtime.log ] && wc -l < tmp/sibling-runtime.log || echo 0) entrées"
           cat tmp/sibling-runtime.log tmp/rspec-parallel_runtime_rspec.log > tmp/merged-runtime.log 2>/dev/null || true
           if [ -s tmp/merged-runtime.log ]; then
-            echo "Log combiné : $(wc -l < tmp/merged-runtime.log) entrées, somme des durées connues : $(awk -F: '{sum+=$NF} END {print sum}' tmp/merged-runtime.log)s"
             GROUP_BY=runtime
             RUNTIME_LOG_ARGS="--runtime-log tmp/merged-runtime.log --allowed-missing 100"
           else
-            echo "Aucun log (ni le sien ni celui du binôme) : repli sur --group-by filesize"
             GROUP_BY=filesize
             RUNTIME_LOG_ARGS=""
           fi
-          echo "GROUP_BY=$GROUP_BY"
-          RAILS_ENV=test bundle exec parallel_test spec --type rspec --pattern '${{ matrix.pattern }}' -n 2 --only-group ${{ matrix.only_group }} --group-by "$GROUP_BY" --verbose $RUNTIME_LOG_ARGS
+          RAILS_ENV=test bundle exec parallel_test spec --type rspec --pattern '${{ matrix.pattern }}' -n 2 --only-group ${{ matrix.only_group }} --group-by "$GROUP_BY" $RUNTIME_LOG_ARGS
         env:
           HOST: http://example.com
           POSTGRES_HOST: localhost
