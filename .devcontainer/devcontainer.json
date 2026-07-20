@@ -3,6 +3,11 @@
   "build": {
     "dockerfile": "Dockerfile"
   },
+  "features": {
+    // Sans ça, Codespaces n'arrive pas toujours à détecter/injecter sshd tout seul sur une
+    // image construite depuis un Dockerfile custom (testé : "failed to start SSH server").
+    "ghcr.io/devcontainers/features/sshd:1": {}
+  },
   "remoteUser": "vscode",
   "containerEnv": {
     // Requis par certains modèles/jobs (cf app/models/domain.rb, jobs CRM) qui lisent
