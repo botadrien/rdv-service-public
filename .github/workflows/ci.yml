@@ -117,12 +117,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # On scinde chaque catégorie en 2 shards, chacun avec 4 process parallel_tests (8 au total
-        # au lieu de 4). only_group liste 4 des 8 groupes formés par -n 8 : avec un seul groupe
-        # sélectionné (ex. "1"), parallel_tests ne lance qu'1 seul process, sans aucun parallélisme
-        # local — mesuré ~2-2.5x plus lent (185s vs 266s de temps total CI) que 4 groupes/4 process.
-        # sibling_name : chaque shard restaure aussi le log de runtime de son binôme, pour que
-        # --group-by runtime ait une vision complète des deux moitiés au lieu de seulement la sienne.
+        # 2 shards/catégorie, 4 process chacun (8 au total). sibling_name : voir "Restore sibling
+        # shard's runtime log too" plus bas.
         name: [unit_1, unit_2, feature_agents_1, feature_agents_2, feature_rest_1, feature_rest_2]
         include:
           - dirname: "**"
@@ -214,15 +210,9 @@ jobs:
       - name: Prepare runtime log cache key
         run: "ls spec/${{ matrix.dirname }}/**/*.rb > tmp/spec_${{ matrix.name }}_files.txt"
       - name: Restore sibling shard's runtime log too
-        # Le cache "propre" ci-dessous ne contient que les temps des fichiers de CE shard (unit_1
-        # ne connaît jamais les temps de unit_2, par ex.). Pour que --group-by runtime calcule un
-        # partage 1-8 cohérent entre les deux shards, il faut une vision combinée des deux moitiés :
-        # on restaure d'abord (en lecture seule) le cache du binôme, à l'emplacement standard du
-        # runtime log (path doit matcher exactement ce qui a été utilisé à la sauvegarde du binôme),
-        # puis on le met de côté juste après pour ne pas l'écraser avec notre propre restore.
-        # matrix.name (et non matrix.sibling_name) est utilisé pour le hash car les deux shards d'une
-        # même catégorie scannent le même dirname : le hash du fichier généré par CE job est donc
-        # identique à celui que le binôme aurait généré lui-même.
+        # Pour un --group-by runtime cohérent entre les 2 shards, on a besoin des temps des deux
+        # moitiés. Restauré en lecture seule puis mis de côté (step suivant) pour ne pas écraser
+        # notre propre cache.
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           key: specs-runtime-log-${{ matrix.sibling_name }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
@@ -235,14 +225,9 @@ jobs:
       - name: Cache parallel test feature spec runtime log
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          # matrix.name est inclus explicitement dans la clé : unit_1 et unit_2 scannent le même
-          # dirname ("**"), donc hashFiles seul produirait la même clé pour les deux shards et un
-          # seul des deux pourrait sauvegarder son cache par run (l'autre le verrait "déjà existant").
-          # Avec une clé par shard, chacun garde son propre historique de runtime, dédié à son sous-
-          # ensemble de fichiers.
+          # matrix.name dans la clé : évite que unit_1/unit_2 (même dirname) partagent une clé.
           key: specs-runtime-log-${{ matrix.name }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
-          # .rspec_parallel écrit le runtime log ici (voir --out), pas au chemin par défaut de
-          # parallel_tests (tmp/parallel_runtime_rspec.log) : on cache donc le bon fichier.
+          # Chemin réel écrit par .rspec_parallel (--out), pas le défaut de parallel_tests.
           path: tmp/rspec-parallel_runtime_rspec.log
       - name: Setup parallel tests
         run: RAILS_ENV=test bundle exec rake parallel:drop parallel:create parallel:load_schema
@@ -253,12 +238,8 @@ jobs:
           POSTGRES_PASSWORD: lapin_test
           POSTGRES_DB: lapin_test
       - name: Run feature specs shard
-        # Répartit les fichiers par temps d'exécution réel plutôt que par taille de fichier quand
-        # on a un log de runtime en cache (fallback sur filesize sinon : premier run, cache miss,
-        # ou après ajout/suppression de specs qui invalide la clé de cache).
-        # --allowed-missing 100 : le log peut être partiellement (voire pas du tout) à jour pour les
-        # fichiers de CE shard (ex. juste après un ajout de specs) sans faire planter le job ; les
-        # fichiers inconnus sont simplement estimés à la durée moyenne des fichiers connus.
+        # group-by runtime si log dispo, sinon filesize. allowed-missing 100 : jamais de crash si
+        # le log est incomplet (fichiers inconnus estimés à la moyenne).
         run: |
           cat tmp/sibling-runtime.log tmp/rspec-parallel_runtime_rspec.log > tmp/merged-runtime.log 2>/dev/null || true
           if [ -s tmp/merged-runtime.log ]; then
