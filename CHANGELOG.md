@@ -7,3 +7,4 @@
 - CI : chaque shard fusionne aussi le log de runtime de son binôme pour un partage cohérent (relance pour vérifier la stabilité).
 - CI : relance après retour au sharding à 4 process/shard (revert de "2 instead of 8") pour confirmer le résultat final combiné.
 - CI : relance une 3e fois pour confirmer la stabilité (0 flaky) du design actuel avant de trancher sur le nombre de shards.
+- CI : revert de la fusion unit/feature_agents/feature_rest en 2 shards, qui divisait par 3 le parallélisme réel (24 → 8 workers) et faisait régresser le temps total (146s → ~270-300s mesuré sur 3 runs). Retour au design à 6 shards (146s confirmé).
