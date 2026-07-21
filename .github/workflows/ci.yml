@@ -133,48 +133,39 @@ jobs:
             feature_rest_3,
           ]
         include:
-          - dirname: "**"
-            pattern: "spec/(?!features)"
+          - pattern: "spec/(?!features)"
             only_group: "1,2,3,4"
             name: unit_1
             sibling_names: [unit_2, unit_3]
-          - dirname: "**"
-            pattern: "spec/(?!features)"
+          - pattern: "spec/(?!features)"
             only_group: "5,6,7,8"
             name: unit_2
             sibling_names: [unit_1, unit_3]
-          - dirname: "**"
-            pattern: "spec/(?!features)"
+          - pattern: "spec/(?!features)"
             only_group: "9,10,11,12"
             name: unit_3
             sibling_names: [unit_1, unit_2]
-          - dirname: features/agents
-            pattern: "spec/features/agents"
+          - pattern: "spec/features/agents"
             only_group: "1,2,3,4"
             name: feature_agents_1
             sibling_names: [feature_agents_2, feature_agents_3]
-          - dirname: features/agents
-            pattern: "spec/features/agents"
+          - pattern: "spec/features/agents"
             only_group: "5,6,7,8"
             name: feature_agents_2
             sibling_names: [feature_agents_1, feature_agents_3]
-          - dirname: features/agents
-            pattern: "spec/features/agents"
+          - pattern: "spec/features/agents"
             only_group: "9,10,11,12"
             name: feature_agents_3
             sibling_names: [feature_agents_1, feature_agents_2]
-          - dirname: features
-            pattern: "spec/features/(?!(agents|autodoc))"
+          - pattern: "spec/features/(?!(agents|autodoc))"
             only_group: "1,2,3,4"
             name: feature_rest_1
             sibling_names: [feature_rest_2, feature_rest_3]
-          - dirname: features
-            pattern: "spec/features/(?!(agents|autodoc))"
+          - pattern: "spec/features/(?!(agents|autodoc))"
             only_group: "5,6,7,8"
             name: feature_rest_2
             sibling_names: [feature_rest_1, feature_rest_3]
-          - dirname: features
-            pattern: "spec/features/(?!(agents|autodoc))"
+          - pattern: "spec/features/(?!(agents|autodoc))"
             only_group: "9,10,11,12"
             name: feature_rest_3
             sibling_names: [feature_rest_1, feature_rest_2]
@@ -235,7 +226,7 @@ jobs:
         if: steps.cache-precompiled-assets.outputs.cache-hit != 'true' # Skip if cache was restored
         run: RAILS_ENV=test bundle exec rails assets:precompile
       - name: Prepare runtime log cache key
-        run: "ls spec/${{ matrix.dirname }}/**/*.rb > tmp/spec_${{ matrix.name }}_files.txt"
+        run: "find spec -name '*_spec.rb' | grep -P '${{ matrix.pattern }}' > tmp/spec_${{ matrix.name }}_files.txt || true"
       - name: Restore first sibling's runtime log
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
