@@ -117,7 +117,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 3 shards/catégorie, 4 process chacun. sibling_name_1/2 : cf "Restore sibling..." plus bas.
+        # 3 shards/catégorie, 4 process chacun. sibling_names : cf "Restore sibling..." plus bas.
         name:
           [
             unit_1,
@@ -135,56 +135,47 @@ jobs:
             pattern: "spec/(?!features)"
             only_group: "1,2,3,4"
             name: unit_1
-            sibling_name_1: unit_2
-            sibling_name_2: unit_3
+            sibling_names: [unit_2, unit_3]
           - dirname: "**"
             pattern: "spec/(?!features)"
             only_group: "5,6,7,8"
             name: unit_2
-            sibling_name_1: unit_1
-            sibling_name_2: unit_3
+            sibling_names: [unit_1, unit_3]
           - dirname: "**"
             pattern: "spec/(?!features)"
             only_group: "9,10,11,12"
             name: unit_3
-            sibling_name_1: unit_1
-            sibling_name_2: unit_2
+            sibling_names: [unit_1, unit_2]
           - dirname: features/agents
             pattern: "spec/features/agents"
             only_group: "1,2,3,4"
             name: feature_agents_1
-            sibling_name_1: feature_agents_2
-            sibling_name_2: feature_agents_3
+            sibling_names: [feature_agents_2, feature_agents_3]
           - dirname: features/agents
             pattern: "spec/features/agents"
             only_group: "5,6,7,8"
             name: feature_agents_2
-            sibling_name_1: feature_agents_1
-            sibling_name_2: feature_agents_3
+            sibling_names: [feature_agents_1, feature_agents_3]
           - dirname: features/agents
             pattern: "spec/features/agents"
             only_group: "9,10,11,12"
             name: feature_agents_3
-            sibling_name_1: feature_agents_1
-            sibling_name_2: feature_agents_2
+            sibling_names: [feature_agents_1, feature_agents_2]
           - dirname: features
             pattern: "spec/features/(?!(agents|autodoc))"
             only_group: "1,2,3,4"
             name: feature_rest_1
-            sibling_name_1: feature_rest_2
-            sibling_name_2: feature_rest_3
+            sibling_names: [feature_rest_2, feature_rest_3]
           - dirname: features
             pattern: "spec/features/(?!(agents|autodoc))"
             only_group: "5,6,7,8"
             name: feature_rest_2
-            sibling_name_1: feature_rest_1
-            sibling_name_2: feature_rest_3
+            sibling_names: [feature_rest_1, feature_rest_3]
           - dirname: features
             pattern: "spec/features/(?!(agents|autodoc))"
             only_group: "9,10,11,12"
             name: feature_rest_3
-            sibling_name_1: feature_rest_1
-            sibling_name_2: feature_rest_2
+            sibling_names: [feature_rest_1, feature_rest_2]
     services:
       postgres:
         image: postgres
@@ -247,13 +238,13 @@ jobs:
         # Nécessaire pour un --group-by runtime cohérent entre les 3 shards.
         uses: ./.github/actions/restore-sibling-runtime-log
         with:
-          sibling-name: ${{ matrix.sibling_name_1 }}
+          sibling-name: ${{ matrix.sibling_names[0] }}
           cache-key-suffix: ${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
           dest-path: tmp/sibling-runtime-1.log
       - name: Restore second sibling's runtime log
         uses: ./.github/actions/restore-sibling-runtime-log
         with:
-          sibling-name: ${{ matrix.sibling_name_2 }}
+          sibling-name: ${{ matrix.sibling_names[1] }}
           cache-key-suffix: ${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
           dest-path: tmp/sibling-runtime-2.log
       - name: Cache parallel test feature spec runtime log
