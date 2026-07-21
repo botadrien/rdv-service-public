@@ -182,13 +182,19 @@ bin/fast_specs spec/models    # un sous-dossier
 bin/fast_specs spec/models -- --fail-fast   # options passées telles quelles à parallel_tests
 ```
 
-Si [`gh`](https://cli.github.com/) est installé et authentifié (`gh auth login`), le script récupère
-d'abord l'historique de durée de la dernière run CI verte sur `production` (les artifacts
-`tests-results-*` uploadés par le job `tests`, voir `.github/workflows/ci.yml`), pour équilibrer les
-process localement aussi bien qu'en CI dès le premier lancement. Sans `gh` (ou sans run récente),
-`parallel_tests` bascule automatiquement sur un équilibrage par taille de fichier — pas de config à
-faire, juste un peu moins bien réparti tant qu'un premier run local n'a pas généré son propre
-historique dans `tmp/rspec-runtime-*.log`.
+Au tout premier lancement (`tmp/rspec-runtime-local.log` absent), et seulement à ce moment-là, le
+script tente de récupérer l'historique de durée de la dernière run CI verte sur `production` si
+[`gh`](https://cli.github.com/) est installé et authentifié (`gh auth login`) — les artifacts
+`tests-results-*` uploadés par le job `tests` (voir `.github/workflows/ci.yml`), pour équilibrer les
+process localement aussi bien qu'en CI dès le début. Sans `gh` (ou sans run récente),
+`parallel_tests` bascule automatiquement sur un équilibrage par taille de fichier.
+
+Les lancements suivants ne re-téléchargent rien : un run complet (sans argument) met à jour lui-même
+`tmp/rspec-runtime-local.log` avec ses propres durées mesurées localement, donc l'historique se
+rafraîchit tout seul et devient plus précis que la donnée CI au fil des runs. Un run partiel (ex.
+`bin/fast_specs spec/models`) ne touche pas ce fichier, pour ne pas appauvrir l'historique des
+fichiers non concernés. Supprimer `tmp/rspec-runtime-local.log` force un nouveau téléchargement au
+prochain lancement.
 
 Variable d'environnement `FAST_SPECS_BRANCH` pour cibler une autre branche que `production`.
 

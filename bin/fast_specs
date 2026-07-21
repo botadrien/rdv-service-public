@@ -1,8 +1,16 @@
 #!/usr/bin/env ruby
 # Lance la suite de specs le plus vite possible en local : parallel_tests sur tous les
-# cœurs disponibles, avec l'historique de durée de la dernière run CI verte sur
-# `production` si possible (récupéré via `gh`), pour un équilibrage des process aussi bon
-# qu'en CI dès le premier lancement.
+# cœurs disponibles. Au tout premier lancement (tmp/rspec-runtime-local.log absent),
+# récupère l'historique de durée de la dernière run CI verte sur `production` si possible
+# (via `gh`), pour un équilibrage des process aussi bon qu'en CI dès le début. Les
+# lancements suivants ne re-téléchargent rien : un run complet (sans argument) met à jour
+# ce fichier lui-même avec ses propres durées mesurées localement (RuntimeLogger de
+# parallel_tests), donc l'historique se rafraîchit tout seul et devient plus précis que
+# la donnée CI au fil des runs. Un run partiel (ex. `bin/fast_specs spec/models`) ne
+# touche pas ce fichier : parallel_tests écrase tout son fichier de sortie avec
+# uniquement les fichiers exécutés cette fois, ce qui appauvrirait l'historique complet.
+#
+# Pour forcer un nouveau téléchargement depuis la CI : supprimer tmp/rspec-runtime-local.log.
 #
 # Sans `gh` (ou sans authentification), tourne quand même : parallel_tests bascule
 # automatiquement sur un équilibrage par taille de fichier s'il n'a pas assez de données
@@ -72,13 +80,20 @@ def fetch_runtime_log_from_last_ci_run
 end
 
 FileUtils.mkdir_p("tmp")
-fetch_runtime_log_from_last_ci_run
 
 paths = ARGV.take_while { |a| a != "--" }
 extra_args = ARGV.drop(paths.size + 1)
+full_run = paths.empty?
 paths = ["spec"] if paths.empty?
+
+fetch_runtime_log_from_last_ci_run unless File.exist?(RUNTIME_LOG)
+
+# CI_SHARD_NAME fait écrire le RuntimeLogger de .rspec_parallel directement dans
+# RUNTIME_LOG (voir .rspec_parallel) : seul un run complet peut se permettre ça sans
+# appauvrir l'historique des fichiers non exécutés cette fois (cf commentaire plus haut).
+env = full_run ? { "CI_SHARD_NAME" => "local" } : {}
 
 cmd = ["bundle", "exec", "parallel_test", *paths, "--type", "rspec", "-n", Etc.nprocessors.to_s,
        "--runtime-log", RUNTIME_LOG, *extra_args,]
-puts "+ #{cmd.join(' ')}"
-exec(*cmd)
+puts "+ #{env.map { |k, v| "#{k}=#{v}" }.join(' ')} #{cmd.join(' ')}".strip
+exec(env, *cmd)
