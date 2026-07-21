@@ -117,40 +117,75 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 2 shards/catégorie, 4 process chacun (8 par catégorie, 24 au total). sibling_name : voir
-        # "Restore sibling shard's runtime log too" plus bas.
-        name: [unit_1, unit_2, feature_agents_1, feature_agents_2, feature_rest_1, feature_rest_2]
+        # 3 shards/catégorie, 4 process chacun (12 par catégorie, 36 au total). sibling_name_1/2 :
+        # voir "Restore sibling shards' runtime logs too" plus bas.
+        name:
+          [
+            unit_1,
+            unit_2,
+            unit_3,
+            feature_agents_1,
+            feature_agents_2,
+            feature_agents_3,
+            feature_rest_1,
+            feature_rest_2,
+            feature_rest_3,
+          ]
         include:
           - dirname: "**"
             pattern: "spec/(?!features)"
             only_group: "1,2,3,4"
             name: unit_1
-            sibling_name: unit_2
+            sibling_name_1: unit_2
+            sibling_name_2: unit_3
           - dirname: "**"
             pattern: "spec/(?!features)"
             only_group: "5,6,7,8"
             name: unit_2
-            sibling_name: unit_1
+            sibling_name_1: unit_1
+            sibling_name_2: unit_3
+          - dirname: "**"
+            pattern: "spec/(?!features)"
+            only_group: "9,10,11,12"
+            name: unit_3
+            sibling_name_1: unit_1
+            sibling_name_2: unit_2
           - dirname: features/agents
             pattern: "spec/features/agents"
             only_group: "1,2,3,4"
             name: feature_agents_1
-            sibling_name: feature_agents_2
+            sibling_name_1: feature_agents_2
+            sibling_name_2: feature_agents_3
           - dirname: features/agents
             pattern: "spec/features/agents"
             only_group: "5,6,7,8"
             name: feature_agents_2
-            sibling_name: feature_agents_1
+            sibling_name_1: feature_agents_1
+            sibling_name_2: feature_agents_3
+          - dirname: features/agents
+            pattern: "spec/features/agents"
+            only_group: "9,10,11,12"
+            name: feature_agents_3
+            sibling_name_1: feature_agents_1
+            sibling_name_2: feature_agents_2
           - dirname: features
             pattern: "spec/features/(?!(agents|autodoc))"
             only_group: "1,2,3,4"
             name: feature_rest_1
-            sibling_name: feature_rest_2
+            sibling_name_1: feature_rest_2
+            sibling_name_2: feature_rest_3
           - dirname: features
             pattern: "spec/features/(?!(agents|autodoc))"
             only_group: "5,6,7,8"
             name: feature_rest_2
-            sibling_name: feature_rest_1
+            sibling_name_1: feature_rest_1
+            sibling_name_2: feature_rest_3
+          - dirname: features
+            pattern: "spec/features/(?!(agents|autodoc))"
+            only_group: "9,10,11,12"
+            name: feature_rest_3
+            sibling_name_1: feature_rest_1
+            sibling_name_2: feature_rest_2
     services:
       postgres:
         image: postgres
@@ -209,18 +244,28 @@ jobs:
         run: RAILS_ENV=test bundle exec rails assets:precompile
       - name: Prepare runtime log cache key
         run: "ls spec/${{ matrix.dirname }}/**/*.rb > tmp/spec_${{ matrix.name }}_files.txt"
-      - name: Restore sibling shard's runtime log too
-        # Pour un --group-by runtime cohérent entre les 2 shards, on a besoin des temps des deux
-        # moitiés. Restauré en lecture seule puis mis de côté (step suivant) pour ne pas écraser
+      - name: Restore sibling shards' runtime logs too
+        # Pour un --group-by runtime cohérent entre les 3 shards, on a besoin des temps des trois
+        # tiers. Restauré en lecture seule puis mis de côté (step suivant) pour ne pas écraser
         # notre propre cache.
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          key: specs-runtime-log-${{ matrix.sibling_name }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
+          key: specs-runtime-log-${{ matrix.sibling_name_1 }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
           path: tmp/rspec-parallel_runtime_rspec.log
-      - name: Set aside sibling's runtime log
+      - name: Set aside first sibling's runtime log
         run: |
           if [ -f tmp/rspec-parallel_runtime_rspec.log ]; then
-            mv tmp/rspec-parallel_runtime_rspec.log tmp/sibling-runtime.log
+            mv tmp/rspec-parallel_runtime_rspec.log tmp/sibling-runtime-1.log
+          fi
+      - name: Restore second sibling shard's runtime log
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          key: specs-runtime-log-${{ matrix.sibling_name_2 }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
+          path: tmp/rspec-parallel_runtime_rspec.log
+      - name: Set aside second sibling's runtime log
+        run: |
+          if [ -f tmp/rspec-parallel_runtime_rspec.log ]; then
+            mv tmp/rspec-parallel_runtime_rspec.log tmp/sibling-runtime-2.log
           fi
       - name: Cache parallel test feature spec runtime log
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
@@ -241,7 +286,7 @@ jobs:
         # group-by runtime si log dispo, sinon filesize. allowed-missing 100 : jamais de crash si
         # le log est incomplet (fichiers inconnus estimés à la moyenne).
         run: |
-          cat tmp/sibling-runtime.log tmp/rspec-parallel_runtime_rspec.log > tmp/merged-runtime.log 2>/dev/null || true
+          cat tmp/sibling-runtime-1.log tmp/sibling-runtime-2.log tmp/rspec-parallel_runtime_rspec.log > tmp/merged-runtime.log 2>/dev/null || true
           if [ -s tmp/merged-runtime.log ]; then
             GROUP_BY=runtime
             RUNTIME_LOG_ARGS="--runtime-log tmp/merged-runtime.log --allowed-missing 100"
@@ -249,7 +294,7 @@ jobs:
             GROUP_BY=filesize
             RUNTIME_LOG_ARGS=""
           fi
-          RAILS_ENV=test bundle exec parallel_test spec --type rspec --pattern '${{ matrix.pattern }}' -n 8 --only-group ${{ matrix.only_group }} --group-by "$GROUP_BY" $RUNTIME_LOG_ARGS
+          RAILS_ENV=test bundle exec parallel_test spec --type rspec --pattern '${{ matrix.pattern }}' -n 12 --only-group ${{ matrix.only_group }} --group-by "$GROUP_BY" $RUNTIME_LOG_ARGS
         env:
           HOST: http://example.com
           POSTGRES_HOST: localhost
