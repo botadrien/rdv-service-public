@@ -234,19 +234,12 @@ jobs:
         run: RAILS_ENV=test bundle exec rails assets:precompile
       - name: Prepare runtime log cache key
         run: "ls spec/${{ matrix.dirname }}/**/*.rb > tmp/spec_${{ matrix.name }}_files.txt"
-      - name: Restore first sibling's runtime log
+      - name: Restore sibling shards' runtime logs
         # Nécessaire pour un --group-by runtime cohérent entre les 3 shards.
         uses: ./.github/actions/restore-sibling-runtime-log
         with:
-          sibling-name: ${{ matrix.sibling_names[0] }}
+          sibling-names: ${{ join(matrix.sibling_names, ',') }}
           cache-key-suffix: ${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
-          dest-path: tmp/sibling-runtime-1.log
-      - name: Restore second sibling's runtime log
-        uses: ./.github/actions/restore-sibling-runtime-log
-        with:
-          sibling-name: ${{ matrix.sibling_names[1] }}
-          cache-key-suffix: ${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
-          dest-path: tmp/sibling-runtime-2.log
       - name: Cache parallel test feature spec runtime log
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:

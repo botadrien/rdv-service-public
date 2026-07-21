@@ -1,21 +1,35 @@
-name: Restore sibling shard's runtime log
-description: Restaure le runtime log en cache d'un shard binôme, et le range hors du chemin par défaut.
+name: Restore siblings' runtime logs
+description: Restaure les runtime logs en cache des 2 shards binômes, sous tmp/sibling-runtime-{1,2}.log.
 inputs:
-  sibling-name:
+  sibling-names:
+    description: 2 noms de shards séparés par une virgule, ex "unit_2,unit_3"
     required: true
   cache-key-suffix:
-    required: true
-  dest-path:
     required: true
 runs:
   using: composite
   steps:
+    - id: split
+      shell: bash
+      run: |
+        IFS=',' read -r name1 name2 <<< "${{ inputs.sibling-names }}"
+        echo "name1=$name1" >> "$GITHUB_OUTPUT"
+        echo "name2=$name2" >> "$GITHUB_OUTPUT"
     - uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
-        key: specs-runtime-log-${{ inputs.sibling-name }}-${{ inputs.cache-key-suffix }}
+        key: specs-runtime-log-${{ steps.split.outputs.name1 }}-${{ inputs.cache-key-suffix }}
         path: tmp/rspec-parallel_runtime_rspec.log
     - shell: bash
       run: |
         if [ -f tmp/rspec-parallel_runtime_rspec.log ]; then
-          mv tmp/rspec-parallel_runtime_rspec.log ${{ inputs.dest-path }}
+          mv tmp/rspec-parallel_runtime_rspec.log tmp/sibling-runtime-1.log
+        fi
+    - uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        key: specs-runtime-log-${{ steps.split.outputs.name2 }}-${{ inputs.cache-key-suffix }}
+        path: tmp/rspec-parallel_runtime_rspec.log
+    - shell: bash
+      run: |
+        if [ -f tmp/rspec-parallel_runtime_rspec.log ]; then
+          mv tmp/rspec-parallel_runtime_rspec.log tmp/sibling-runtime-2.log
         fi
