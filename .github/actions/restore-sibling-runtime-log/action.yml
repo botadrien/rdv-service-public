@@ -1,0 +1,21 @@
+name: Restore sibling shard's runtime log
+description: Restaure le runtime log en cache d'un shard binôme, et le range hors du chemin par défaut.
+inputs:
+  sibling-name:
+    required: true
+  cache-key-suffix:
+    required: true
+  dest-path:
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        key: specs-runtime-log-${{ inputs.sibling-name }}-${{ inputs.cache-key-suffix }}
+        path: tmp/rspec-parallel_runtime_rspec.log
+    - shell: bash
+      run: |
+        if [ -f tmp/rspec-parallel_runtime_rspec.log ]; then
+          mv tmp/rspec-parallel_runtime_rspec.log ${{ inputs.dest-path }}
+        fi

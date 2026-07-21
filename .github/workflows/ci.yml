@@ -243,28 +243,19 @@ jobs:
         run: RAILS_ENV=test bundle exec rails assets:precompile
       - name: Prepare runtime log cache key
         run: "ls spec/${{ matrix.dirname }}/**/*.rb > tmp/spec_${{ matrix.name }}_files.txt"
-      - name: Restore sibling shards' runtime logs too
-        # Nécessaire pour un --group-by runtime cohérent entre les 3 shards. Mis de côté juste après
-        # (step suivant) pour ne pas écraser notre propre cache.
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      - name: Restore first sibling's runtime log
+        # Nécessaire pour un --group-by runtime cohérent entre les 3 shards.
+        uses: ./.github/actions/restore-sibling-runtime-log
         with:
-          key: specs-runtime-log-${{ matrix.sibling_name_1 }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
-          path: tmp/rspec-parallel_runtime_rspec.log
-      - name: Set aside first sibling's runtime log
-        run: |
-          if [ -f tmp/rspec-parallel_runtime_rspec.log ]; then
-            mv tmp/rspec-parallel_runtime_rspec.log tmp/sibling-runtime-1.log
-          fi
-      - name: Restore second sibling shard's runtime log
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+          sibling-name: ${{ matrix.sibling_name_1 }}
+          cache-key-suffix: ${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
+          dest-path: tmp/sibling-runtime-1.log
+      - name: Restore second sibling's runtime log
+        uses: ./.github/actions/restore-sibling-runtime-log
         with:
-          key: specs-runtime-log-${{ matrix.sibling_name_2 }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
-          path: tmp/rspec-parallel_runtime_rspec.log
-      - name: Set aside second sibling's runtime log
-        run: |
-          if [ -f tmp/rspec-parallel_runtime_rspec.log ]; then
-            mv tmp/rspec-parallel_runtime_rspec.log tmp/sibling-runtime-2.log
-          fi
+          sibling-name: ${{ matrix.sibling_name_2 }}
+          cache-key-suffix: ${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
+          dest-path: tmp/sibling-runtime-2.log
       - name: Cache parallel test feature spec runtime log
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
