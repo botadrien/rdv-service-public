@@ -2,6 +2,7 @@
 # Lance parallel_tests sur tous les cœurs. Détails : docs/4-notes-techniques.md.
 # Usage : bin/fast_specs [chemins de specs...] [-- options parallel_tests...]
 
+require "English"
 require "etc"
 require "fileutils"
 require "open3"
@@ -56,6 +57,27 @@ def fetch_runtime_log_from_last_ci_run
   true
 end
 
+def estimated_seconds
+  return nil unless File.exist?(RUNTIME_LOG)
+
+  total = File.readlines(RUNTIME_LOG).sum { |l| l.rpartition(":").last.to_f }
+  total.positive? ? total / Etc.nprocessors : nil
+end
+
+def show_progress(pid, estimated)
+  bar_width = 30
+  start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+  until Process.waitpid(pid, Process::WNOHANG)
+    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
+    pct = [(elapsed / estimated * 100).round, 99].min
+    filled = bar_width * pct / 100
+    print "\r[#{'=' * filled}#{' ' * (bar_width - filled)}] #{pct}% (~#{elapsed.round}s / ~#{estimated.round}s)"
+    $stdout.flush
+    sleep 1
+  end
+  puts
+end
+
 FileUtils.mkdir_p("tmp")
 
 paths = ARGV.take_while { |a| a != "--" }
@@ -66,8 +88,14 @@ paths = ["spec"] if paths.empty?
 fetch_runtime_log_from_last_ci_run unless File.exist?(RUNTIME_LOG)
 
 env = full_run ? { "CI_SHARD_NAME" => "local" } : {}
+estimated = estimated_seconds
 
 cmd = ["bundle", "exec", "parallel_test", *paths, "--type", "rspec", "-n", Etc.nprocessors.to_s,
        "--runtime-log", RUNTIME_LOG, *extra_args,]
+cmd += ["--serialize-stdout"] if estimated
 puts "+ #{env.map { |k, v| "#{k}=#{v}" }.join(' ')} #{cmd.join(' ')}".strip
-exec(env, *cmd)
+
+pid = Process.spawn(env, *cmd)
+show_progress(pid, estimated) if estimated
+Process.waitpid(pid) unless estimated
+exit($CHILD_STATUS.exitstatus)
