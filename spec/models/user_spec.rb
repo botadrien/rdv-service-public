@@ -36,6 +36,23 @@ RSpec.describe User, type: :model do
     end
   end
 
+  describe "#sso_provider_name" do
+    it "retourne FranceConnect pour un compte connecté via FranceConnect" do
+      user = build(:user, franceconnect_openid_sub: "abc123")
+      expect(user.sso_provider_name).to eq("FranceConnect")
+    end
+
+    it "retourne ProConnect pour un compte connecté via ProConnect" do
+      user = build(:user, pro_connect_openid_sub: "def456")
+      expect(user.sso_provider_name).to eq("ProConnect")
+    end
+
+    it "retourne nil pour un compte non connecté via SSO" do
+      user = build(:user)
+      expect(user.sso_provider_name).to be_nil
+    end
+  end
+
   describe ".loginable_by_code_for_email_in_territory_or_without_territory" do
     let!(:territory_1)    { create(:territory) }
     let!(:territory_2)    { create(:territory) }

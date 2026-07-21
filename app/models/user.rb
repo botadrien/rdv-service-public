@@ -273,6 +273,12 @@ class User < ApplicationRecord
     (franceconnect_openid_sub || pro_connect_openid_sub).present?
   end
 
+  def sso_provider_name
+    return "FranceConnect" if franceconnect_openid_sub.present?
+
+    "ProConnect" if pro_connect_openid_sub.present?
+  end
+
   def already_logged_in?
     latest_login_at?
   end
