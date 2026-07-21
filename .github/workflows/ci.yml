@@ -261,7 +261,7 @@ jobs:
           POSTGRES_DB: lapin_test
       - name: Run feature specs shard
         run: |
-          cat tmp/rspec-runtime-${{ matrix.sibling_names[0] }}.log tmp/rspec-runtime-${{ matrix.sibling_names[1] }}.log tmp/rspec-runtime-${{ matrix.name }}.log > tmp/rspec-runtime-merged.log 2>/dev/null || true
+          cat tmp/rspec-runtime-*.log > tmp/rspec-runtime-merged.log 2>/dev/null || true
           if [ -s tmp/rspec-runtime-merged.log ]; then
             GROUP_BY=runtime
             RUNTIME_LOG_ARGS="--runtime-log tmp/rspec-runtime-merged.log --allowed-missing 100"
