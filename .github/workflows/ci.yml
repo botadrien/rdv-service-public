@@ -119,18 +119,38 @@ jobs:
       matrix:
         # 2 shards/catégorie, 4 process chacun (8 au total). sibling_name : voir "Restore sibling
         # shard's runtime log too" plus bas.
-        name: [specs_1, specs_2]
+        name: [unit_1, unit_2, feature_agents_1, feature_agents_2, feature_rest_1, feature_rest_2]
         include:
           - dirname: "**"
-            pattern: "spec/(?!features/autodoc)"
+            pattern: "spec/(?!features)"
             only_group: "1,2,3,4"
-            name: specs_1
-            sibling_name: specs_2
+            name: unit_1
+            sibling_name: unit_2
           - dirname: "**"
-            pattern: "spec/(?!features/autodoc)"
+            pattern: "spec/(?!features)"
             only_group: "5,6,7,8"
-            name: specs_2
-            sibling_name: specs_1
+            name: unit_2
+            sibling_name: unit_1
+          - dirname: features/agents
+            pattern: "spec/features/agents"
+            only_group: "1,2,3,4"
+            name: feature_agents_1
+            sibling_name: feature_agents_2
+          - dirname: features/agents
+            pattern: "spec/features/agents"
+            only_group: "5,6,7,8"
+            name: feature_agents_2
+            sibling_name: feature_agents_1
+          - dirname: features
+            pattern: "spec/features/(?!(agents|autodoc))"
+            only_group: "1,2,3,4"
+            name: feature_rest_1
+            sibling_name: feature_rest_2
+          - dirname: features
+            pattern: "spec/features/(?!(agents|autodoc))"
+            only_group: "5,6,7,8"
+            name: feature_rest_2
+            sibling_name: feature_rest_1
     services:
       postgres:
         image: postgres
@@ -205,7 +225,7 @@ jobs:
       - name: Cache parallel test feature spec runtime log
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          # matrix.name dans la clé : évite que specs_1/specs_2 (même dirname) partagent une clé.
+          # matrix.name dans la clé : évite que unit_1/unit_2 (même dirname) partagent une clé.
           key: specs-runtime-log-${{ matrix.name }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
           # Chemin réel écrit par .rspec_parallel (--out), pas le défaut de parallel_tests.
           path: tmp/rspec-parallel_runtime_rspec.log
