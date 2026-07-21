@@ -117,8 +117,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 3 shards/catégorie, 4 process chacun (12 par catégorie, 36 au total). sibling_name_1/2 :
-        # voir "Restore sibling shards' runtime logs too" plus bas.
+        # 3 shards/catégorie, 4 process chacun. sibling_name_1/2 : cf "Restore sibling..." plus bas.
         name:
           [
             unit_1,
@@ -245,9 +244,8 @@ jobs:
       - name: Prepare runtime log cache key
         run: "ls spec/${{ matrix.dirname }}/**/*.rb > tmp/spec_${{ matrix.name }}_files.txt"
       - name: Restore sibling shards' runtime logs too
-        # Pour un --group-by runtime cohérent entre les 3 shards, on a besoin des temps des trois
-        # tiers. Restauré en lecture seule puis mis de côté (step suivant) pour ne pas écraser
-        # notre propre cache.
+        # Nécessaire pour un --group-by runtime cohérent entre les 3 shards. Mis de côté juste après
+        # (step suivant) pour ne pas écraser notre propre cache.
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           key: specs-runtime-log-${{ matrix.sibling_name_1 }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
@@ -283,8 +281,7 @@ jobs:
           POSTGRES_PASSWORD: lapin_test
           POSTGRES_DB: lapin_test
       - name: Run feature specs shard
-        # group-by runtime si log dispo, sinon filesize. allowed-missing 100 : jamais de crash si
-        # le log est incomplet (fichiers inconnus estimés à la moyenne).
+        # group-by runtime si log dispo, sinon filesize. allowed-missing 100 : pas de crash si log incomplet.
         run: |
           cat tmp/sibling-runtime-1.log tmp/sibling-runtime-2.log tmp/rspec-parallel_runtime_rspec.log > tmp/merged-runtime.log 2>/dev/null || true
           if [ -s tmp/merged-runtime.log ]; then
