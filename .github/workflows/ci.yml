@@ -237,22 +237,20 @@ jobs:
       - name: Prepare runtime log cache key
         run: "ls spec/${{ matrix.dirname }}/**/*.rb > tmp/spec_${{ matrix.name }}_files.txt"
       - name: Restore first sibling's runtime log
-        uses: ./.github/actions/restore-sibling-runtime-log
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          sibling-name: ${{ matrix.sibling_names[0] }}
-          cache-key-suffix: ${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
-          dest-path: tmp/rspec-runtime-sibling-1.log
+          key: specs-runtime-log-${{ matrix.sibling_names[0] }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
+          path: tmp/rspec-runtime-${{ matrix.sibling_names[0] }}.log
       - name: Restore second sibling's runtime log
-        uses: ./.github/actions/restore-sibling-runtime-log
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          sibling-name: ${{ matrix.sibling_names[1] }}
-          cache-key-suffix: ${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
-          dest-path: tmp/rspec-runtime-sibling-2.log
+          key: specs-runtime-log-${{ matrix.sibling_names[1] }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
+          path: tmp/rspec-runtime-${{ matrix.sibling_names[1] }}.log
       - name: Cache parallel test feature spec runtime log
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           key: specs-runtime-log-${{ matrix.name }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
-          path: tmp/rspec-runtime-current.log
+          path: tmp/rspec-runtime-${{ matrix.name }}.log
       - name: Setup parallel tests
         run: RAILS_ENV=test bundle exec rake parallel:drop parallel:create parallel:load_schema
         env:
@@ -263,7 +261,7 @@ jobs:
           POSTGRES_DB: lapin_test
       - name: Run feature specs shard
         run: |
-          cat tmp/rspec-runtime-sibling-1.log tmp/rspec-runtime-sibling-2.log tmp/rspec-runtime-current.log > tmp/rspec-runtime-merged.log 2>/dev/null || true
+          cat tmp/rspec-runtime-${{ matrix.sibling_names[0] }}.log tmp/rspec-runtime-${{ matrix.sibling_names[1] }}.log tmp/rspec-runtime-${{ matrix.name }}.log > tmp/rspec-runtime-merged.log 2>/dev/null || true
           if [ -s tmp/rspec-runtime-merged.log ]; then
             GROUP_BY=runtime
             RUNTIME_LOG_ARGS="--runtime-log tmp/rspec-runtime-merged.log --allowed-missing 100"
@@ -274,6 +272,7 @@ jobs:
           RAILS_ENV=test bundle exec parallel_test spec --type rspec --pattern '${{ matrix.pattern }}' -n 12 --only-group ${{ matrix.only_group }} --group-by "$GROUP_BY" $RUNTIME_LOG_ARGS
         env:
           HOST: http://example.com
+          CI_SHARD_NAME: ${{ matrix.name }}
           POSTGRES_HOST: localhost
           POSTGRES_PORT: 5432
           POSTGRES_USER: lapin_test
