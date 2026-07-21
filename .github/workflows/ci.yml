@@ -240,20 +240,19 @@ jobs:
         with:
           sibling-name: ${{ matrix.sibling_names[0] }}
           cache-key-suffix: ${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
-          dest-path: tmp/sibling-runtime-1.log
+          dest-path: tmp/rspec-runtime-sibling-1.log
       - name: Restore second sibling's runtime log
         uses: ./.github/actions/restore-sibling-runtime-log
         with:
           sibling-name: ${{ matrix.sibling_names[1] }}
           cache-key-suffix: ${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
-          dest-path: tmp/sibling-runtime-2.log
+          dest-path: tmp/rspec-runtime-sibling-2.log
       - name: Cache parallel test feature spec runtime log
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           # matrix.name dans la clé : évite que unit_1/unit_2 (même dirname) partagent une clé.
           key: specs-runtime-log-${{ matrix.name }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
-          # Chemin réel écrit par .rspec_parallel (--out), pas le défaut de parallel_tests.
-          path: tmp/rspec-parallel_runtime_rspec.log
+          path: tmp/rspec-runtime-current.log
       - name: Setup parallel tests
         run: RAILS_ENV=test bundle exec rake parallel:drop parallel:create parallel:load_schema
         env:
@@ -265,10 +264,10 @@ jobs:
       - name: Run feature specs shard
         # group-by runtime si log dispo, sinon filesize. allowed-missing 100 : pas de crash si log incomplet.
         run: |
-          cat tmp/sibling-runtime-1.log tmp/sibling-runtime-2.log tmp/rspec-parallel_runtime_rspec.log > tmp/merged-runtime.log 2>/dev/null || true
-          if [ -s tmp/merged-runtime.log ]; then
+          cat tmp/rspec-runtime-sibling-1.log tmp/rspec-runtime-sibling-2.log tmp/rspec-runtime-current.log > tmp/rspec-runtime-merged.log 2>/dev/null || true
+          if [ -s tmp/rspec-runtime-merged.log ]; then
             GROUP_BY=runtime
-            RUNTIME_LOG_ARGS="--runtime-log tmp/merged-runtime.log --allowed-missing 100"
+            RUNTIME_LOG_ARGS="--runtime-log tmp/rspec-runtime-merged.log --allowed-missing 100"
           else
             GROUP_BY=filesize
             RUNTIME_LOG_ARGS=""
