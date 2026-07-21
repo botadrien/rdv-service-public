@@ -1,25 +1,6 @@
 #!/usr/bin/env ruby
-# Lance la suite de specs le plus vite possible en local : parallel_tests sur tous les
-# cœurs disponibles. Au tout premier lancement (tmp/rspec-runtime-local.log absent),
-# récupère l'historique de durée de la dernière run CI verte sur `production` si possible
-# (via `gh`), pour un équilibrage des process aussi bon qu'en CI dès le début. Les
-# lancements suivants ne re-téléchargent rien : un run complet (sans argument) met à jour
-# ce fichier lui-même avec ses propres durées mesurées localement (RuntimeLogger de
-# parallel_tests), donc l'historique se rafraîchit tout seul et devient plus précis que
-# la donnée CI au fil des runs. Un run partiel (ex. `bin/fast_specs spec/models`) ne
-# touche pas ce fichier : parallel_tests écrase tout son fichier de sortie avec
-# uniquement les fichiers exécutés cette fois, ce qui appauvrirait l'historique complet.
-#
-# Pour forcer un nouveau téléchargement depuis la CI : supprimer tmp/rspec-runtime-local.log.
-#
-# Sans `gh` (ou sans authentification), tourne quand même : parallel_tests bascule
-# automatiquement sur un équilibrage par taille de fichier s'il n'a pas assez de données
-# de durée (comportement natif de la gem, pas besoin de --group-by ni --allowed-missing).
-#
-# Usage : bin/fast_specs [chemins de specs...] [options parallel_tests...]
-#   bin/fast_specs                          # toute la suite
-#   bin/fast_specs spec/models               # un sous-dossier
-#   bin/fast_specs -- --only-failures        # options passées telles quelles à parallel_tests
+# Lance parallel_tests sur tous les cœurs. Détails : docs/4-notes-techniques.md.
+# Usage : bin/fast_specs [chemins de specs...] [-- options parallel_tests...]
 
 require "etc"
 require "fileutils"
@@ -29,16 +10,12 @@ REPO = "betagouv/rdv-service-public".freeze
 BRANCH = ENV.fetch("FAST_SPECS_BRANCH", "production")
 RUNTIME_LOG = "tmp/rspec-runtime-local.log".freeze
 ARTIFACTS_DIR = "tmp/ci-runtime-logs".freeze
-# Un shard par catégorie suffit : son log "merged" contient déjà les 3 shards de la
-# catégorie fusionnés (voir .github/workflows/ci.yml, step "Run feature specs shard").
 REPRESENTATIVE_SHARDS = %w[unit_1 feature_agents_1 feature_rest_1].freeze
 
 def gh_authenticated?
   system("gh", "auth", "status", out: File::NULL, err: File::NULL)
 end
 
-# Best-effort : toute erreur ici doit juste faire tourner la suite sans historique de
-# durée, jamais bloquer bin/fast_specs.
 def fetch_runtime_log_from_last_ci_run
   unless gh_authenticated?
     warn "bin/fast_specs : gh CLI absent ou non authentifié (`gh auth login`), on tourne sans historique de durée."
@@ -88,9 +65,6 @@ paths = ["spec"] if paths.empty?
 
 fetch_runtime_log_from_last_ci_run unless File.exist?(RUNTIME_LOG)
 
-# CI_SHARD_NAME fait écrire le RuntimeLogger de .rspec_parallel directement dans
-# RUNTIME_LOG (voir .rspec_parallel) : seul un run complet peut se permettre ça sans
-# appauvrir l'historique des fichiers non exécutés cette fois (cf commentaire plus haut).
 env = full_run ? { "CI_SHARD_NAME" => "local" } : {}
 
 cmd = ["bundle", "exec", "parallel_test", *paths, "--type", "rspec", "-n", Etc.nprocessors.to_s,
