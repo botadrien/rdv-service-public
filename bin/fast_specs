@@ -1,0 +1,84 @@
+#!/usr/bin/env ruby
+# Lance la suite de specs le plus vite possible en local : parallel_tests sur tous les
+# cœurs disponibles, avec l'historique de durée de la dernière run CI verte sur
+# `production` si possible (récupéré via `gh`), pour un équilibrage des process aussi bon
+# qu'en CI dès le premier lancement.
+#
+# Sans `gh` (ou sans authentification), tourne quand même : parallel_tests bascule
+# automatiquement sur un équilibrage par taille de fichier s'il n'a pas assez de données
+# de durée (comportement natif de la gem, pas besoin de --group-by ni --allowed-missing).
+#
+# Usage : bin/fast_specs [chemins de specs...] [options parallel_tests...]
+#   bin/fast_specs                          # toute la suite
+#   bin/fast_specs spec/models               # un sous-dossier
+#   bin/fast_specs -- --only-failures        # options passées telles quelles à parallel_tests
+
+require "etc"
+require "fileutils"
+require "open3"
+
+REPO = "betagouv/rdv-service-public".freeze
+BRANCH = ENV.fetch("FAST_SPECS_BRANCH", "production")
+RUNTIME_LOG = "tmp/rspec-runtime-local.log".freeze
+ARTIFACTS_DIR = "tmp/ci-runtime-logs".freeze
+# Un shard par catégorie suffit : son log "merged" contient déjà les 3 shards de la
+# catégorie fusionnés (voir .github/workflows/ci.yml, step "Run feature specs shard").
+REPRESENTATIVE_SHARDS = %w[unit_1 feature_agents_1 feature_rest_1].freeze
+
+def gh_authenticated?
+  system("gh", "auth", "status", out: File::NULL, err: File::NULL)
+end
+
+# Best-effort : toute erreur ici doit juste faire tourner la suite sans historique de
+# durée, jamais bloquer bin/fast_specs.
+def fetch_runtime_log_from_last_ci_run
+  unless gh_authenticated?
+    warn "bin/fast_specs : gh CLI absent ou non authentifié (`gh auth login`), on tourne sans historique de durée."
+    return false
+  end
+
+  run_id, status = Open3.capture2(
+    "gh", "run", "list",
+    "--repo", REPO, "--branch", BRANCH, "--workflow", "ci.yml",
+    "--status", "success", "--limit", "1", "--json", "databaseId", "-q", ".[0].databaseId"
+  )
+  run_id = run_id.strip
+  unless status.success? && !run_id.empty?
+    warn "bin/fast_specs : pas de run CI verte récente trouvée sur #{BRANCH}, on tourne sans historique de durée."
+    return false
+  end
+
+  FileUtils.rm_rf(ARTIFACTS_DIR)
+  FileUtils.mkdir_p(ARTIFACTS_DIR)
+  downloaded = system(
+    "gh", "run", "download", run_id,
+    "--repo", REPO, "--pattern", "tests-results-*", "--dir", ARTIFACTS_DIR,
+    out: File::NULL, err: File::NULL
+  )
+  unless downloaded
+    warn "bin/fast_specs : échec du téléchargement des artifacts CI, on tourne sans historique de durée."
+    return false
+  end
+
+  logs = REPRESENTATIVE_SHARDS.flat_map { |shard| Dir.glob("#{ARTIFACTS_DIR}/tests-results-#{shard}/tmp/rspec-runtime-merged.log") }
+  if logs.empty?
+    warn "bin/fast_specs : aucun runtime log dans les artifacts téléchargés, on tourne sans historique de durée."
+    return false
+  end
+
+  File.write(RUNTIME_LOG, logs.map { |f| File.read(f) }.join)
+  puts "bin/fast_specs : historique de durée récupéré depuis la run CI ##{run_id} sur #{BRANCH}."
+  true
+end
+
+FileUtils.mkdir_p("tmp")
+fetch_runtime_log_from_last_ci_run
+
+paths = ARGV.take_while { |a| a != "--" }
+extra_args = ARGV.drop(paths.size + 1)
+paths = ["spec"] if paths.empty?
+
+cmd = ["bundle", "exec", "parallel_test", *paths, "--type", "rspec", "-n", Etc.nprocessors.to_s,
+       "--runtime-log", RUNTIME_LOG, *extra_args,]
+puts "+ #{cmd.join(' ')}"
+exec(*cmd)

@@ -172,6 +172,26 @@ Une console s’ouvre alors et on peut appeler des commandes comme `click_button
 Ça ne fonctionne pas avec `byebug` ou un breakpoint de debug sur RubyMine, lorsqu’on éxecute une commande dans la console ouverte, le navigateur semble bloqué.
 Je suppose que l’éxecution du serveur Rails de spec est complètement interrompue, ce qui n’est pas pratique pour itérer
 
+## Lancer la suite de specs le plus vite possible en local
+
+`bin/fast_specs` lance `parallel_tests` sur tous les cœurs disponibles localement (`Etc.nprocessors`) :
+
+```bash
+bin/fast_specs                # toute la suite
+bin/fast_specs spec/models    # un sous-dossier
+bin/fast_specs spec/models -- --fail-fast   # options passées telles quelles à parallel_tests
+```
+
+Si [`gh`](https://cli.github.com/) est installé et authentifié (`gh auth login`), le script récupère
+d'abord l'historique de durée de la dernière run CI verte sur `production` (les artifacts
+`tests-results-*` uploadés par le job `tests`, voir `.github/workflows/ci.yml`), pour équilibrer les
+process localement aussi bien qu'en CI dès le premier lancement. Sans `gh` (ou sans run récente),
+`parallel_tests` bascule automatiquement sur un équilibrage par taille de fichier — pas de config à
+faire, juste un peu moins bien réparti tant qu'un premier run local n'a pas généré son propre
+historique dans `tmp/rspec-runtime-*.log`.
+
+Variable d'environnement `FAST_SPECS_BRANCH` pour cibler une autre branche que `production`.
+
 ## Nombre maximum de threads et de connexions en production
 
 ### Nombre max de connexions ouvertes à la base de données PostgreSQL
