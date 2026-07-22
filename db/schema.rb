@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_22_130046) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_10_142439) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -212,16 +212,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_22_130046) do
     t.string "categories", default: [], array: true
     t.string "external_url", null: false
     t.datetime "published_at", null: false
-  end
-
-  create_table "email_change_codes", force: :cascade do |t|
-    t.bigint "user_id", null: false
-    t.string "new_email", null: false
-    t.string "code", null: false
-    t.datetime "used_at"
-    t.datetime "created_at", null: false
-    t.index ["user_id", "created_at"], name: "index_email_change_codes_on_user_id_and_created_at"
-    t.index ["user_id"], name: "index_email_change_codes_on_user_id"
   end
 
   create_table "export_file_blobs", force: :cascade do |t|
@@ -957,7 +947,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_22_130046) do
   add_foreign_key "annotations", "territories"
   add_foreign_key "annotations", "users"
   add_foreign_key "api_calls", "agents"
-  add_foreign_key "email_change_codes", "users"
   add_foreign_key "export_file_blobs", "exports"
   add_foreign_key "exports", "agents"
   add_foreign_key "external_calendar_events", "agents"

@@ -179,13 +179,7 @@ class CronJob < ApplicationJob
     def perform
       LoginCode.where("created_at < ?", 7.days.ago).delete_all
       # on garde les codes quelques jours pour investiguer certaines situations et avoir une idée des volumes
-    end
-  end
-
-  class DestroyEmailChangeCodesJob < CronJob
-    def perform
-      EmailChangeCode.where("created_at < ?", 7.days.ago).delete_all
-      # on garde les codes quelques jours pour investiguer certaines situations et avoir une idée des volumes
+      # (cette table sert à la fois aux codes de connexion et aux codes de changement d'email)
     end
   end
 

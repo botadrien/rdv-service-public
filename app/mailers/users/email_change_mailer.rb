@@ -2,12 +2,12 @@ class Users::EmailChangeMailer < ApplicationMailer
   attr_reader :domain
 
   def confirmation_code
-    @email_change_code = params[:email_change_code]
-    @domain = Domain.find(params[:domain_id])
+    @login_code = params[:login_code]
+    @domain = Domain.find(@login_code.domain_id)
 
     mail(
-      subject: "Votre code de confirmation est #{@email_change_code.code}",
-      to: @email_change_code.new_email
+      subject: "Votre code de confirmation est #{@login_code.code}",
+      to: @login_code.email
     )
   end
 end

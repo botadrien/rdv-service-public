@@ -5,40 +5,44 @@ class Users::EmailChangesController < UserAuthController
   before_action { authorize(current_user, :update?, policy_class: User::UserPolicy) }
 
   def new
-    @email_change_code = EmailChangeCode.new(user: current_user)
+    @login_code = LoginCode.new
   end
 
   def create
-    @email_change_code = EmailChangeCode.new(user: current_user, new_email: email_change_code_params[:new_email])
-    @email_change_request_form = Users::EmailChangeRequestForm.new(@email_change_code)
+    @login_code = LoginCode.new(email: login_code_params[:email], domain_id: current_domain.id)
+    @email_change_request_form = Users::EmailChangeRequestForm.new(@login_code, current_user: current_user)
 
     if @email_change_request_form.save
-      Users::EmailChangeMailer.with(email_change_code: @email_change_code, domain_id: current_domain.id).confirmation_code.deliver_later
-      redirect_to edit_email_change_path,
-                  flash: { success: "Un code de confirmation a été envoyé à #{@email_change_code.new_email}." }
+      Users::EmailChangeMailer.with(login_code: @login_code).confirmation_code.deliver_later
+      redirect_to edit_email_change_path(email: @login_code.email),
+                  flash: { success: "Un code de confirmation a été envoyé à #{@login_code.email}." }
     else
       render :new
     end
   end
 
   def edit
-    @existing_email_change_code = EmailChangeCode.most_recent_usable_for(user: current_user)
-    redirect_to new_email_change_path unless @existing_email_change_code
+    @email = params[:email]
+    return redirect_to new_email_change_path if @email.blank?
+
+    @existing_login_code = LoginCode.most_recent_usable_for(email: @email)
   end
 
   def update
-    validator = EmailChangeCodeValidator.new(user: current_user, code: email_change_code_params[:code])
+    email = login_code_params[:email]
+    validator = LoginCodeValidator.new(email:, code: login_code_params[:code])
 
     if validator.valid?
-      valid_email_change_code = validator.valid_email_change_code
-      current_user.update!(email: valid_email_change_code.new_email)
-      valid_email_change_code.update!(used_at: Time.zone.now)
+      valid_login_code = validator.valid_login_code
+      current_user.update!(email: valid_login_code.email)
+      valid_login_code.update!(used_at: Time.zone.now)
       redirect_to users_informations_path, flash: { success: "Votre adresse email a été mise à jour." }
     elsif validator.should_redirect_to_code_request?
       redirect_to new_email_change_path, flash: { error: validator.error }
     else
-      @existing_email_change_code = EmailChangeCode.most_recent_usable_for(user: current_user)
-      @existing_email_change_code.errors.add(:base, validator.error)
+      @email = email
+      @existing_login_code = LoginCode.most_recent_usable_for(email:)
+      @existing_login_code&.errors&.add(:base, validator.error)
       render :edit
     end
   end
@@ -51,7 +55,7 @@ class Users::EmailChangesController < UserAuthController
     redirect_to users_informations_path, flash: { error: "Vous ne pouvez pas modifier votre adresse email." }
   end
 
-  def email_change_code_params
-    params.require(:email_change_code).permit(:new_email, :code)
+  def login_code_params
+    params.require(:login_code).permit(:email, :code)
   end
 end

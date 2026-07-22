@@ -3,10 +3,10 @@ p
   | Voici votre code de confirmation :
 
 p{style="font-family: monospace; letter-spacing: .5rem; font-size: 1.4rem; max-height: 4rem; height: 4rem;"}
-  = @email_change_code.code
+  = @login_code.code
 
 p
-  | Ce code est valable 30 minutes (jusqu’à #{I18n.l(@email_change_code.created_at + 30.minutes, format: :time_only)})
+  | Ce code est valable 30 minutes (jusqu’à #{I18n.l(@login_code.created_at + 30.minutes, format: :time_only)})
 
 hr{style="margin: 1rem 0;"}
 p

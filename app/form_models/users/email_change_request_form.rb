@@ -2,37 +2,34 @@ module Users
   class EmailChangeRequestForm
     include ActiveModel::Model
 
-    attr_reader :email_change_code
+    attr_reader :login_code, :current_user
 
-    delegate :new_email, to: :email_change_code
+    delegate :email, to: :login_code
 
-    validate :validate_email_change_code
-    validate :validate_new_email_different, if: -> { email_change_code.valid? }
-    validate :validate_not_sent_too_recently, if: -> { email_change_code.valid? }
+    validates :email, presence: true, format: { with: Devise.email_regexp }
+    validate :validate_new_email_different, if: -> { errors[:email].empty? }
+    validate :validate_not_sent_too_recently, if: -> { errors[:email].empty? }
 
-    def initialize(email_change_code)
-      @email_change_code = email_change_code
-    end
-
-    def validate_email_change_code
-      errors.merge!(email_change_code) if email_change_code.invalid?
+    def initialize(login_code, current_user:)
+      @login_code = login_code
+      @current_user = current_user
     end
 
     def validate_new_email_different
-      return unless new_email.casecmp?(email_change_code.user.email.to_s)
+      return unless email.casecmp?(current_user.email.to_s)
 
       errors.add(:base, "La nouvelle adresse email doit être différente de l’adresse actuelle")
     end
 
     def validate_not_sent_too_recently
-      if EmailChangeCode.most_recent_usable_for(user: email_change_code.user)&.very_recent?
+      if LoginCode.most_recent_usable_for(email:)&.very_recent?
         errors.add(:base, <<~ERROR)
-          Un code a été envoyé à #{new_email} il y a moins de deux minutes.
+          Un code a été envoyé à #{email} il y a moins de deux minutes.
           Vous devriez recevoir ce code d’ici peu de temps.
         ERROR
       end
     end
 
-    def save = valid? && email_change_code.save
+    def save = valid? && login_code.save
   end
 end

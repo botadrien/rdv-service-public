@@ -65,7 +65,6 @@ class User < ApplicationRecord
   has_many :receipts, dependent: :destroy
   has_many :annotations, dependent: :destroy
   has_many :external_references, as: :item, dependent: :destroy
-  has_many :email_change_codes, dependent: :destroy
 
   # Through relations
   # we specify dependent: :destroy because by default user_profiles and referent_assignations

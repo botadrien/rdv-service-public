@@ -123,10 +123,6 @@ Rails.application.configure do
       cron: "every day at 05:00 Europe/Paris",
       class: "CronJob::DestroyLoginCodesJob",
     },
-    destroy_email_change_codes: {
-      cron: "every day at 05:00 Europe/Paris",
-      class: "CronJob::DestroyEmailChangeCodesJob",
-    },
     refresh_agents_sensitive_account: {
       cron: "every day at 04:00 Europe/Paris",
       class: "CronJob::RefreshAgentsSensitiveAccountJob",
