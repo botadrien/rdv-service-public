@@ -11,7 +11,7 @@
           = render "model_errors", model: @email_change_request_form if @email_change_request_form
 
           p
-            | Renseignez votre nouvelle adresse email.
+            ' Renseignez votre nouvelle adresse email.
             | Un code de confirmation à 6 chiffres vous sera envoyé à cette adresse.
 
           = form_for @email_change_code, as: :email_change_code, url: email_change_path, method: :post, builder: Dsfr::FormBuilder do |f|
