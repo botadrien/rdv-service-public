@@ -574,3 +574,10 @@ tables:
       - used_at
       - created_at
       - domain_id
+  - table_name: email_change_codes
+    anonymized_column_names:
+      - new_email
+      - code
+    non_anonymized_column_names:
+      - used_at
+      - created_at

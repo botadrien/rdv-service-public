@@ -1,9 +1,12 @@
-p Vous avez demandé à changer l’adresse email de votre compte #{domain.name}. Voici votre code de confirmation :
+p
+  | Vous avez demandé à changer l’adresse email de votre compte #{domain.name}.
+  | Voici votre code de confirmation :
 
 p{style="font-family: monospace; letter-spacing: .5rem; font-size: 1.4rem; max-height: 4rem; height: 4rem;"}
   = @email_change_code.code
 
-p Ce code est valable 30 minutes (jusqu’à #{I18n.l(@email_change_code.created_at + 30.minutes, format: :time_only)})
+p
+  | Ce code est valable 30 minutes (jusqu’à #{I18n.l(@email_change_code.created_at + 30.minutes, format: :time_only)})
 
 hr{style="margin: 1rem 0;"}
 p
