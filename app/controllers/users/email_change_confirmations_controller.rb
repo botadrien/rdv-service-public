@@ -1,34 +1,17 @@
-class Users::EmailChangesController < UserAuthController
+class Users::EmailChangeConfirmationsController < UserAuthController
   layout "application_base"
 
   before_action :ensure_can_change_email
   before_action { authorize(current_user, :update?, policy_class: User::UserPolicy) }
 
   def new
-    @login_code = LoginCode.new
-  end
-
-  def create
-    @login_code = LoginCode.new(email: login_code_params[:email], domain_id: current_domain.id)
-    @email_change_request_form = Users::EmailChangeRequestForm.new(@login_code, current_user: current_user)
-
-    if @email_change_request_form.save
-      Users::EmailChangeMailer.with(login_code: @login_code).confirmation_code.deliver_later
-      redirect_to edit_email_change_path(email: @login_code.email),
-                  flash: { success: "Un code de confirmation a été envoyé à #{@login_code.email}." }
-    else
-      render :new
-    end
-  end
-
-  def edit
     @email = params[:email]
-    return redirect_to new_email_change_path if @email.blank?
+    return redirect_to new_email_change_request_path if @email.blank?
 
     @existing_login_code = LoginCode.most_recent_usable_for(email: @email)
   end
 
-  def update
+  def create
     email = login_code_params[:email]
     validator = LoginCodeValidator.new(email:, code: login_code_params[:code])
 
@@ -38,12 +21,12 @@ class Users::EmailChangesController < UserAuthController
       valid_login_code.update!(used_at: Time.zone.now)
       redirect_to users_informations_path, flash: { success: "Votre adresse email a été mise à jour." }
     elsif validator.should_redirect_to_code_request?
-      redirect_to new_email_change_path, flash: { error: validator.error }
+      redirect_to new_email_change_request_path, flash: { error: validator.error }
     else
       @email = email
       @existing_login_code = LoginCode.most_recent_usable_for(email:)
       @existing_login_code&.errors&.add(:base, validator.error)
-      render :edit
+      render :new
     end
   end
 

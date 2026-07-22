@@ -30,7 +30,7 @@ RSpec.describe "User can change their email" do
       expect(page).to have_field("Email", with: user.email, disabled: true)
       expect(page).not_to have_link "Changer d’adresse email"
 
-      visit new_email_change_path
+      visit new_email_change_request_path
       expect(page).to have_content "Vous ne pouvez pas modifier votre adresse email."
       expect(page).to have_current_path(users_informations_path)
     end

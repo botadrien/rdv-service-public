@@ -116,7 +116,8 @@ Rails.application.routes.draw do
   authenticate :user do
     get "/users/informations", to: "users/users#edit"
     patch "users/informations", to: "users/users#update"
-    resource :email_change, only: %i[new create edit update], controller: "users/email_changes", path: "users/email_change"
+    resource :email_change_request, only: %i[new create], controller: "users/email_change_requests", path: "users/email_change"
+    resource :email_change_confirmation, only: %i[new create], controller: "users/email_change_confirmations", path: "users/email_change/confirmation"
     resources :relatives, except: %i[index show], controller: "users/relatives"
   end
 

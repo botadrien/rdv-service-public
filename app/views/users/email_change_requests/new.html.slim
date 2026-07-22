@@ -18,7 +18,7 @@
             ' Renseignez votre nouvelle adresse email.
             | Un code de confirmation à 6 chiffres vous sera envoyé à cette adresse.
 
-          = form_for @login_code, as: :login_code, url: email_change_path, method: :post, builder: Dsfr::FormBuilder do |f|
+          = form_for @login_code, as: :login_code, url: email_change_request_path, method: :post, builder: Dsfr::FormBuilder do |f|
             = f.dsfr_email_field :email, label: "Nouvelle adresse email", required: true, autocomplete: "email"
             .rdv-text-align-right
               = f.submit "Recevoir un code de confirmation", class: "fr-btn"
