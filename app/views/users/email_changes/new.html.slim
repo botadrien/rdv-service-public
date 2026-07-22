@@ -11,6 +11,10 @@
           = render "model_errors", model: @email_change_request_form if @email_change_request_form
 
           p
+            |> Votre adresse email actuelle est
+            b= "#{current_user.email}."
+
+          p
             ' Renseignez votre nouvelle adresse email.
             | Un code de confirmation à 6 chiffres vous sera envoyé à cette adresse.
 

@@ -11,6 +11,12 @@
           h1.card-title
             | Confirmation du changement d’adresse email
 
+          p
+            |> Vous êtes en train de changer votre adresse email de
+            b> #{current_user.email}
+            |> vers
+            b= "#{@email}."
+
           - if @existing_login_code
             p
               |> Un code à 6 chiffres a été envoyé à
