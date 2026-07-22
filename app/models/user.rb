@@ -65,6 +65,7 @@ class User < ApplicationRecord
   has_many :receipts, dependent: :destroy
   has_many :annotations, dependent: :destroy
   has_many :external_references, as: :item, dependent: :destroy
+  has_many :email_change_codes, dependent: :destroy
 
   # Through relations
   # we specify dependent: :destroy because by default user_profiles and referent_assignations
@@ -280,6 +281,12 @@ class User < ApplicationRecord
   # peut modifier son email. Dans tous les autres cas (SSO, usager déjà connecté, usager connecté via code…) il est figé.
   def email_editable?
     signed_in_with_invitation_token? && !(email.present? && already_logged_in?)
+  end
+
+  # Un usager déjà connecté peut demander à changer son email via le parcours à code de confirmation,
+  # sauf s'il s'est connecté avec FranceConnect (adresse certifiée par l'État).
+  def can_change_email?
+    franceconnect_openid_sub.blank?
   end
 
   protected

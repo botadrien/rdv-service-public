@@ -1,0 +1,30 @@
+- content_for :title, "Confirmation du changement d’adresse email"
+
+- if @existing_email_change_code&.errors&.any?
+  .fr-mb-2w= render "model_errors", model: @existing_email_change_code
+
+.fr-container.fr-pt-3w
+  .row.justify-content-md-center
+    .col-md-6
+      .card
+        .card-body
+          h1.card-title Confirmation du changement d’adresse email
+
+          p
+            |> Un code à 6 chiffres a été envoyé à
+            b> #{@existing_email_change_code.new_email}
+            | à #{l(@existing_email_change_code.created_at, format: :time_only)}
+
+          .rdv-legible-code-form
+            = form_for @existing_email_change_code, as: :email_change_code, url: email_change_path, method: :patch, builder: Dsfr::FormBuilder do |f|
+              = f.dsfr_text_field :code,
+                label: "Code à 6 chiffres",
+                type: "text",
+                inputmode: "numeric",
+                maxlength: 6,
+                required: true,
+                autocomplete: "off"
+              = f.submit "Valider", class: "fr-btn"
+
+          .fr-mt-4w
+            = link_to "Changer d’adresse email à nouveau", new_email_change_path, class: "fr-link"

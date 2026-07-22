@@ -1,0 +1,20 @@
+- content_for :title, "Changer d’adresse email"
+
+.fr-container.fr-pt-3w
+  .row.justify-content-md-center
+    .col-md-6
+      .card
+        .card-body
+          h1.card-title Changer d’adresse email
+
+          = render "model_errors", model: @email_change_request_form if @email_change_request_form
+
+          p Renseignez votre nouvelle adresse email. Un code de confirmation à 6 chiffres vous sera envoyé à cette adresse.
+
+          = form_for @email_change_code, as: :email_change_code, url: email_change_path, method: :post, builder: Dsfr::FormBuilder do |f|
+            = f.dsfr_email_field :new_email, label: "Nouvelle adresse email", required: true, autocomplete: "email"
+            .rdv-text-align-right
+              = f.submit "Recevoir un code de confirmation", class: "fr-btn"
+
+          .fr-mt-2w
+            = link_to "Annuler", users_informations_path, class: "fr-link"
