@@ -39,3 +39,20 @@ module ActiveModelPresenceErrorFullMessage
 end
 
 ActiveModel::Error.prepend(ActiveModelPresenceErrorFullMessage)
+
+# `ActiveModel::Errors#full_message(attribute, message)` (utilisé par exemple par le helper
+# `errors_full_messages` de `app/helpers/application_helper.rb`, à la base du bandeau d'erreurs
+# `_model_errors.html.slim` affiché sur la quasi-totalité des formulaires admin) appelle
+# directement `ActiveModel::Error.full_message` (méthode de classe), en court-circuitant
+# `ActiveModel::Error#full_message` (méthode d'instance) et donc la surcharge ci-dessus.
+# On retrouve l'objet Error correspondant pour repasser par sa méthode d'instance patchée.
+module ActiveModelErrorsFullMessageWithType
+  def full_message(attribute, message)
+    matching_error = find { |error| error.attribute == attribute && error.message == message }
+    return matching_error.full_message if matching_error
+
+    super
+  end
+end
+
+ActiveModel::Errors.prepend(ActiveModelErrorsFullMessageWithType)
