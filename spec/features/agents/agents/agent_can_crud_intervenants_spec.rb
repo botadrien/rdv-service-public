@@ -130,8 +130,8 @@ RSpec.describe "Agent can CRUD intervenants" do
       click_button("Enregistrer")
 
       expect(page).to have_content("Email est déjà utilisé")
-      expect(page).to have_content("Prénom doit être rempli·e")
-      expect(page).to have_content("Nom d’usage doit être rempli·e")
+      expect(page).to have_content("Le champ Prénom doit être renseigné")
+      expect(page).to have_content("Le champ Nom d’usage doit être renseigné")
 
       expect(enqueued_jobs).to be_empty
 

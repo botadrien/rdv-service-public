@@ -72,7 +72,7 @@ RSpec.describe "Tout le monde peut nous contacter" do
         post "/aide/demande_support", params: { demande_support_form: full_form }
       end.not_to have_enqueued_job
 
-      expect(response.body).to include("Role doit être rempli·e")
+      expect(response.body).to include("Le champ Role doit être renseigné")
     end
   end
 
