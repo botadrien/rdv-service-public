@@ -189,27 +189,25 @@ jobs:
       - name: Precompile assets
         if: steps.cache-precompiled-assets.outputs.cache-hit != 'true' # Skip if cache was restored
         run: RAILS_ENV=test bundle exec rails assets:precompile
-      - name: Prepare runtime log cache key
-        run: "find spec -name '*_spec.rb' | grep -P 'spec/(?!features/autodoc)' > tmp/spec_${{ matrix.name }}_files.txt || true"
       - name: Restore first sibling's runtime log
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          key: specs-runtime-log-${{ matrix.sibling_names[0] }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
+          key: specs-runtime-log-${{ matrix.sibling_names[0] }}-${{ hashFiles('spec/**/*_spec.rb') }}
           path: tmp/rspec-runtime-${{ matrix.sibling_names[0] }}.log
       - name: Restore second sibling's runtime log
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          key: specs-runtime-log-${{ matrix.sibling_names[1] }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
+          key: specs-runtime-log-${{ matrix.sibling_names[1] }}-${{ hashFiles('spec/**/*_spec.rb') }}
           path: tmp/rspec-runtime-${{ matrix.sibling_names[1] }}.log
       - name: Restore third sibling's runtime log
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          key: specs-runtime-log-${{ matrix.sibling_names[2] }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
+          key: specs-runtime-log-${{ matrix.sibling_names[2] }}-${{ hashFiles('spec/**/*_spec.rb') }}
           path: tmp/rspec-runtime-${{ matrix.sibling_names[2] }}.log
       - name: Cache parallel test feature spec runtime log
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          key: specs-runtime-log-${{ matrix.name }}-${{ hashFiles(format('tmp/spec_{0}_files.txt', matrix.name)) }}
+          key: specs-runtime-log-${{ matrix.name }}-${{ hashFiles('spec/**/*_spec.rb') }}
           path: tmp/rspec-runtime-${{ matrix.name }}.log
       - name: Setup parallel tests
         run: RAILS_ENV=test bundle exec rake parallel:drop parallel:create parallel:load_schema
