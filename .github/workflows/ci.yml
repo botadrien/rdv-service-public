@@ -196,12 +196,11 @@ jobs:
       - name: Setup parallel tests and run feature specs
         run: |
           RAILS_ENV=test bundle exec rake parallel:drop parallel:create parallel:load_schema
+          GROUP_BY=filesize
+          RUNTIME_LOG_ARGS=""
           if [ -s tmp/rspec-runtime-merged.log ]; then
             GROUP_BY=runtime
             RUNTIME_LOG_ARGS="--runtime-log tmp/rspec-runtime-merged.log --allowed-missing 100"
-          else
-            GROUP_BY=filesize
-            RUNTIME_LOG_ARGS=""
           fi
           RAILS_ENV=test bundle exec parallel_test spec --type rspec --pattern 'spec/(?!features/autodoc)' -n 16 --only-group ${{ matrix.only_group }} --group-by "$GROUP_BY" $RUNTIME_LOG_ARGS
         env:
