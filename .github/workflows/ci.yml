@@ -196,9 +196,10 @@ jobs:
       - name: Setup parallel tests and run feature specs
         run: |
           RAILS_ENV=test bundle exec rake parallel:drop parallel:create parallel:load_schema
-          RUNTIME_LOG_ARGS="--group-by filesize"
           if [ -s tmp/rspec-runtime-merged.log ]; then
             RUNTIME_LOG_ARGS="--group-by runtime --runtime-log tmp/rspec-runtime-merged.log --allowed-missing 100"
+          else
+            RUNTIME_LOG_ARGS="--group-by filesize"
           fi
           RAILS_ENV=test bundle exec parallel_test spec --type rspec --pattern 'spec/(?!features/autodoc)' -n 16 --only-group ${{ matrix.only_group }} $RUNTIME_LOG_ARGS
         env:
@@ -225,7 +226,7 @@ jobs:
     steps:
       - name: Download shard runtime logs
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        continue-on-error: true # Pas grave si un shard n'a produit aucun artefact (ex. échec avant l'upload)
+        continue-on-error: true # si un shard n'a produit aucun artefact (ex. échec avant l'upload)
         with:
           pattern: tests-results-*
           path: artifacts
@@ -233,7 +234,7 @@ jobs:
         run: |
           mkdir -p tmp
           cat artifacts/*/rspec-runtime-*.log > tmp/rspec-runtime-merged.log 2>/dev/null || true
-      - name: Save merged runtime log for the next run
+      - name: Save merged runtime log for the next runs
         uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           key: specs-runtime-log-merged-${{ github.run_id }}
