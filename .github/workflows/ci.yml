@@ -190,7 +190,7 @@ jobs:
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           key: specs-runtime-log-merged-${{ github.run_id }}
-          restore-keys: |
+          restore-keys: | # ne matche jamais exactement, retombe sur le cache le plus récent créé avec ce préfixe
             specs-runtime-log-merged-
           path: tmp/rspec-runtime-merged.log
       - name: Setup parallel tests and run feature specs
