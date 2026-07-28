@@ -240,7 +240,9 @@ jobs:
           pattern: tests-results-*
           path: artifacts
       - name: Merge runtime logs
-        run: cat artifacts/*/rspec-runtime-*.log > tmp/rspec-runtime-merged.log 2>/dev/null || true
+        run: |
+          mkdir -p tmp
+          cat artifacts/*/rspec-runtime-*.log > tmp/rspec-runtime-merged.log 2>/dev/null || true
       - name: Save merged runtime log for the next run
         uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
