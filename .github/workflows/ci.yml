@@ -193,16 +193,9 @@ jobs:
           restore-keys: |
             specs-runtime-log-merged-
           path: tmp/rspec-runtime-merged.log
-      - name: Setup parallel tests
-        run: RAILS_ENV=test bundle exec rake parallel:drop parallel:create parallel:load_schema
-        env:
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: 5432
-          POSTGRES_USER: lapin_test
-          POSTGRES_PASSWORD: lapin_test
-          POSTGRES_DB: lapin_test
-      - name: Run specs shard
+      - name: Setup parallel tests and run feature specs
         run: |
+          RAILS_ENV=test bundle exec rake parallel:drop parallel:create parallel:load_schema
           if [ -s tmp/rspec-runtime-merged.log ]; then
             GROUP_BY=runtime
             RUNTIME_LOG_ARGS="--runtime-log tmp/rspec-runtime-merged.log --allowed-missing 100"
