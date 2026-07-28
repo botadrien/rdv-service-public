@@ -77,7 +77,13 @@ Sur un fork tout juste créé, les GitHub Actions (donc la CI) peuvent être dé
 
 ## VM devbox Lima
 
-Si la variable d'environnement `RDVSP_DEVBOX_VM` est définie, tu tournes dans la VM devbox Lima créée par `scripts/devtools/lima-vm/host-create-vm.sh`. Implications :
+Si la variable d'environnement `RDVSP_DEVBOX` est définie, tu tournes dans la VM devbox Lima créée par `scripts/devtools/lima-vm/host-create-vm.sh`. Implications :
 
 - Postgres et Redis tournent localement dans la VM
 - Le dossier du projet est un mount RW
+- `scripts/devtools/lima-vm/vm-setup.sh` configure `POSTGRES_USER=rdvsp` et l'activation de `mise` (PATH pour ruby/node/yarn) dans `~/.bashrc`, mais un shell **non interactif** ne source pas `~/.bashrc` automatiquement. Si une commande échoue avec `ruby`/`bundle`/`node` introuvable, ou avec une erreur Postgres du type `role "<user>" does not exist`, exporte-les explicitement avant de lancer la commande plutôt que de conclure que l'environnement est mal configuré :
+  ```bash
+  eval "$($HOME/.local/bin/mise activate bash)"
+  export POSTGRES_USER=rdvsp
+  ```
+- Les navigateurs Playwright sont déjà installés dans la VM (`~/.cache/ms-playwright`). Si les specs `js: true` échouent avec « Playwright browser Chromium headless is not installed », c'est le plus souvent que `node` n'est pas sur le PATH du shell courant (le check dans `spec/support/capybara_config.rb` invoque `node_modules/.bin/playwright`, qui a besoin de `node`), pas qu'il manque réellement à réinstaller.
