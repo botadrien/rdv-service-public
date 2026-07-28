@@ -81,5 +81,3 @@ Si la variable d'environnement `RDVSP_DEVBOX` est définie, tu tournes dans la V
 
 - Postgres et Redis tournent localement dans la VM
 - Le dossier du projet est un mount RW
-- `PATH` (ruby/node/yarn via `mise`) et `POSTGRES_USER=rdvsp` sont disponibles nativement aussi bien dans un shell interactif que dans un shell **non interactif** (ex. `bash -c "…"`, ce que font la plupart des agents IA) : `scripts/devtools/lima-vm/vm-setup.sh` factorise ces exports dans `~/.rdvsp-env.sh`, sourcé à la fois par `~/.bashrc` et via `BASH_ENV` (`/etc/environment`). Si malgré tout une commande échoue avec `ruby`/`bundle`/`node` introuvable, ou avec une erreur Postgres du type `role "<user>" does not exist`, la VM a probablement été créée avant ce correctif — recrée-la avec `scripts/devtools/lima-vm/host-create-vm.sh`, ou à défaut source `~/.rdvsp-env.sh` explicitement.
-- Les navigateurs Playwright sont déjà installés dans la VM (`~/.cache/ms-playwright`) : inutile de les réinstaller si un check échoue, chercher plutôt pourquoi `node` n'est pas sur le PATH (le check dans `spec/support/capybara_config.rb` invoque `node_modules/.bin/playwright`, qui en dépend).
