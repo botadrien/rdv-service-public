@@ -119,8 +119,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # tout spec/ (sauf spec/features/autodoc, à part dans test_features_autodoc) réparti
-        # en 4 shards de 4 processes chacun (4 cpu/runner) = 16 groupes au total
+        # tout spec/ sauf spec/features/autodoc
+        # 4 shards (specs_1, 2, 3, 4) qui ont 4vCPU chacun
+        # les 4*4 groupes permettent de s'assurer d'avoir un groupe à lancer par vCPU
         name: [specs_1, specs_2, specs_3, specs_4]
         include:
           - only_group: "1,2,3,4"
