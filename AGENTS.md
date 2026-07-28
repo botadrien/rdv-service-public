@@ -61,6 +61,10 @@ Indique bien clairement comment reproduire le problème manuellement si c'est un
 
 Pour les captures d'écran d'un changement d'état (avant/après une mise à jour), fais en sorte que l'état pertinent (ex. l'ancienne et la nouvelle valeur) soit visible directement dans l'écran capturé, pas seulement dans la légende de la capture.
 
+### Messages de commit et de PR
+
+Ne mentionne jamais ton nom (Claude ou autre) ni le fait qu'un agent IA est à l'origine du commit ou de la PR : pas de trailer `Co-Authored-By`, pas de lien de session, aucune référence à un assistant IA. Les messages de commit et les PR doivent être rédigés comme s'ils venaient de l'utilisateur.
+
 ### Environnement de travail
 
 ## GitHub CodeSpace
