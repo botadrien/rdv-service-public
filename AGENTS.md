@@ -55,7 +55,8 @@ Les changements de permissions ou l'exposition involontaire de données qui ne l
 
 # Qualité
 
-Propose des changements minimaux. Évite autant que possible les PR de plusieurs centaines de lignes.
+Propose des changements minimaux. 
+Évite autant que possible les PR de plusieurs centaines de lignes.
 
 Avant d'introduire une nouvelle table/modèle pour une fonctionnalité, vérifie si un mécanisme existant du dépôt ne peut pas être réutilisé tel quel (ex. un système de code de vérification par email déjà en place). La réutilisation directe, quand elle est possible sans migration, est presque toujours préférable à une table dédiée même plus « propre » sur le papier — compare concrètement les deux (diff, tests) plutôt que trancher sur la seule théorie.
 
@@ -67,19 +68,25 @@ Indique bien clairement comment reproduire le problème manuellement si c'est un
 
 Pour les captures d'écran d'un changement d'état (avant/après une mise à jour), fais en sorte que l'état pertinent (ex. l'ancienne et la nouvelle valeur) soit visible directement dans l'écran capturé, pas seulement dans la légende de la capture.
 
+## Desktop - mobile
+
+Les agents sont à 90% sur desktop, les usagers à 90% sur mobile.
+Prends ça en compte quand tu designes des vues et fais des screenshots.
+
 ### Messages de commit et de PR
 
 Ne mentionne jamais ton nom (Claude ou autre) ni le fait qu'un agent IA est à l'origine du commit ou de la PR : pas de trailer `Co-Authored-By`, pas de lien de session, aucune référence à un assistant IA. Les messages de commit et les PR doivent être rédigés comme s'ils venaient de l'utilisateur.
 
 ### Environnement de travail
 
+-- IMPORTANT --
+Toi, agent IA, ne doit JAMAIS ouvrir de PR, mettre de commentaire, ou quelconque écriture sur le repository original github.com/betagouv/rdv-service-public.
+Il existe un fork botadrientronics/rdv-service-public sur lequel tu as les droits, sur celui-ci tu peux TOUT faire, créer des PR, commenter etc…
+-- FIN -- 
+
 ## GitHub CodeSpace
 
-Il est fort possible que tu tournes dans une VM GitHub CodeSpace, avec un `GITHUB_TOKEN` dans l'environnement authentifié pour un compte personnel qui possède un fork de ce dépôt.
-Dans ce cas, tu ne dois JAMAIS ouvrir de PR, mettre de commentaire, ou quelconque écriture sur le repo original de l'orga betagouv.
-Tu peux tout faire sur ce fork personnel — vérifie son nom exact avec `git remote -v` plutôt que de te fier à un nom en dur : le compte/fork peut avoir été renommé depuis la dernière fois (ex. `botadrien` → `botadrientronics`).
-Le CLI `gh` n'est pas forcément installé : dans ce cas utilise `curl` avec `$GITHUB_TOKEN` directement contre `https://api.github.com`.
-Sur un fork tout juste créé, les GitHub Actions (donc la CI) peuvent être désactivées par défaut tant qu'un humain n'a pas cliqué la bannière d'activation sur la page Actions du fork.
+Tu tournes peut-être dans un GitHub Codespace avec un `GITHUB_TOKEN` dans l'environnement qui a les droits sur le repo botadrientronics.
 
 ## VM devbox Lima
 
@@ -87,3 +94,4 @@ Si la variable d'environnement `RDVSP_DEVBOX_VM` est définie, tu tournes dans l
 
 - Postgres et Redis tournent localement dans la VM
 - Le dossier du projet est un mount RW
+- Tu as accès au repo forké github botadrientronics via le CLI gh
