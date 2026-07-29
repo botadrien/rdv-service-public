@@ -34,6 +34,12 @@ p
   | Un code de confirmation à 6 chiffres vous sera envoyé à cette adresse.
 ```
 
+### DSFR uniquement, jamais Bootstrap
+
+Dans les vues, n'utilise jamais de classes Bootstrap comme `.card`,  `.row`, `.col-*`, etc… 
+Utilise exclusivement le [DSFR](https://www.systeme-de-design.gouv.fr/) : classes `fr-*` (ex. `fr-container`, `fr-mt-1w`) et les form builders dédiés (`Dsfr::FormBuilder`). 
+Si une vue existante contient encore des classes Bootstrap, ne les reproduis pas dans du code nouveau — utilise l'équivalent DSFR.
+
 ## Specs
 
 - **RSpec :** `bundle exec rspec <chemins>` — ou `bin/rspec` (via Spring). Cible des fichiers/dossiers précis : `bundle exec rspec spec/features/users/online_booking/`.
