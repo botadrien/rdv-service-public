@@ -215,9 +215,24 @@ jobs:
         with:
           name: runtime-log-for-shards
           path: tmp
-      - name: Setup parallel tests and run feature specs
+      - name: Setup test databases
+        # On charge le schéma une seule fois puis on clone les 3 autres bases avec
+        # CREATE DATABASE ... TEMPLATE, une copie fichier côté Postgres bien plus
+        # rapide que de rejouer le schéma 4 fois via parallel:create/load_schema.
         run: |
-          RAILS_ENV=test bundle exec rake parallel:create parallel:load_schema
+          RAILS_ENV=test bundle exec rake db:create db:schema:load
+          for i in 2 3 4; do
+            PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER -d postgres -c "CREATE DATABASE lapin_test$i TEMPLATE lapin_test" &
+          done
+          wait
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: lapin_test
+          POSTGRES_PASSWORD: lapin_test
+          POSTGRES_DB: lapin_test
+      - name: Run feature specs
+        run: |
           if [ -s tmp/rspec-runtime-merged.log ]; then
             RUNTIME_LOG_ARGS="--group-by runtime --runtime-log tmp/rspec-runtime-merged.log --allowed-missing 100"
           else
