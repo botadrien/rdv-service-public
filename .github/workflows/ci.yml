@@ -137,9 +137,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 4 shards (specs_1, 2, 3, 4) lancés en parallèle sur GH Actions qui ont 4vCPU chacun
-        # les 4*4 groupes découpés par `parallel` correspondent aux unités de travail de chaque vCPU
-        name: [specs_1, specs_2, specs_3, specs_4]
+        # 8 shards (specs_1..8) lancés en parallèle sur GH Actions qui ont 4vCPU chacun
+        # les 8*4 groupes découpés par `parallel` correspondent aux unités de travail de chaque vCPU
+        name: [specs_1, specs_2, specs_3, specs_4, specs_5, specs_6, specs_7, specs_8]
         include:
           - only_group: "1,2,3,4"
             name: specs_1
@@ -149,6 +149,14 @@ jobs:
             name: specs_3
           - only_group: "13,14,15,16"
             name: specs_4
+          - only_group: "17,18,19,20"
+            name: specs_5
+          - only_group: "21,22,23,24"
+            name: specs_6
+          - only_group: "25,26,27,28"
+            name: specs_7
+          - only_group: "29,30,31,32"
+            name: specs_8
     services:
       postgres:
         image: postgres
@@ -219,7 +227,7 @@ jobs:
           else
             RUNTIME_LOG_ARGS="--group-by filesize"
           fi
-          RAILS_ENV=test bundle exec parallel_test spec --type rspec --pattern 'spec/(?!features/autodoc)' -n 16 --only-group ${{ matrix.only_group }} $RUNTIME_LOG_ARGS
+          RAILS_ENV=test bundle exec parallel_test spec --type rspec --pattern 'spec/(?!features/autodoc)' -n 32 --only-group ${{ matrix.only_group }} $RUNTIME_LOG_ARGS
         env:
           HOST: http://example.com
           CI_SHARD_NAME: ${{ matrix.name }}
