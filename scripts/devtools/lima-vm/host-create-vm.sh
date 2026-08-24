@@ -27,6 +27,7 @@ done
 PROJECT_DIR="$(pwd)"
 VM_NAME="rdvsp-devbox"
 SCRIPTS_DIR="$PROJECT_DIR/scripts/devtools/lima-vm"
+SSH_LOCAL_PORT=60102 # port fixe (au lieu de l'auto-assignation par défaut de Lima), pour pouvoir s'y référer sans revérifier à chaque recréation de VM
 
 if limactl list --format='{{.Name}}' | grep -qx "$VM_NAME"; then
   echo "==> Suppression de la VM Lima existante '$VM_NAME'…"
@@ -37,7 +38,8 @@ mkdir -p "$PROJECT_DIR/tmp/lima-vm-cache/local"
 
 limactl start template:ubuntu-24.04 --name="$VM_NAME" --cpus=4 --memory=4 --disk=20 -y \
   --set ".mounts[0] = {\"location\": \"$PROJECT_DIR\", \"writable\": true}" \
-  --set ".mounts[1] = {\"location\": \"$HOME/.claude\", \"writable\": true}"
+  --set ".mounts[1] = {\"location\": \"$HOME/.claude\", \"writable\": true}" \
+  --set ".ssh.localPort = $SSH_LOCAL_PORT"
 
 echo "==> Installation des dépendances dans la VM…"
 limactl shell "$VM_NAME" -- env PROJECT_DIR="$PROJECT_DIR" HOST_HOME="$HOME" VM_NAME="$VM_NAME" bash "$SCRIPTS_DIR/vm-setup.sh"
@@ -63,3 +65,4 @@ fi
 
 echo ""
 echo "La VM '$VM_NAME' est prête. Run: limactl shell $VM_NAME"
+echo "SSH direct (port fixe) : ssh -p $SSH_LOCAL_PORT -i ~/.lima/_config/user -o NoHostAuthenticationForLocalhost=yes 127.0.0.1"
