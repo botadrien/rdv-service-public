@@ -4,6 +4,13 @@
 
 set -euo pipefail
 
+# Le dossier parent du repo (p.ex. ~/dev) n'est pas monté depuis l'hôte, ce
+# n'est qu'un dossier local à la VM créé par Lima et appartenant à root. On
+# le passe à l'utilisateur courant pour que les dossiers frères du repo
+# (worktrees créés par Orca) soient accessibles en écriture ; ils resteront
+# locaux à la VM, jamais propagés vers l'hôte.
+sudo chown "$(id -u):$(id -g)" "$(dirname "$PROJECT_DIR")"
+
 sudo apt-get update -y
 sudo apt-get install -y build-essential curl git vim tmux postgresql redis-server dnsutils
 sudo systemctl enable postgresql redis-server
@@ -37,7 +44,9 @@ echo "BASH_ENV=$HOME/.rdvsp-env.sh" | sudo tee -a /etc/environment > /dev/null
 source ~/.rdvsp-env.sh
 
 # tweaks
-echo "cd $PROJECT_DIR" >> ~/.bashrc # toujours ouvrir le terminal dans le repo
+# Ne force le cd que hors contexte Orca : Orca ouvre déjà le terminal dans le
+# bon worktree (ORCA_WORKTREE_ID), et ce cd écraserait ce choix.
+echo "[ -z \"\${ORCA_WORKTREE_ID-}\" ] && cd $PROJECT_DIR" >> ~/.bashrc # toujours ouvrir le terminal dans le repo (sauf sous Orca)
 
 # Installe Claude
 curl -fsSL https://claude.ai/install.sh | bash
