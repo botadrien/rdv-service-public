@@ -1,0 +1,28 @@
+{
+  "name": "RDV Service Public",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "features": {
+    // Sans ça, Codespaces n'arrive pas toujours à détecter/injecter sshd tout seul sur une
+    // image construite depuis un Dockerfile custom (testé : "failed to start SSH server").
+    "ghcr.io/devcontainers/features/sshd:1": {}
+  },
+  "remoteUser": "vscode",
+  "containerEnv": {
+    // Requis par certains modèles/jobs (cf app/models/domain.rb, jobs CRM) qui lisent
+    // ENV["HOST"]. Même valeur que le job "tests" de .github/workflows/ci.yml.
+    "HOST": "http://example.com"
+  },
+  "forwardPorts": [3000, 5432, 6379],
+  "portsAttributes": {
+    "3000": { "label": "Rails" }
+  },
+  "postCreateCommand": ".devcontainer/post-create.sh",
+  "postStartCommand": ".devcontainer/post-start.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": ["Shopify.ruby-lsp"]
+    }
+  }
+}
