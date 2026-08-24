@@ -90,7 +90,7 @@ Tu tournes peut-être dans un GitHub Codespace avec un `GITHUB_TOKEN` dans l'env
 
 ## VM devbox Lima
 
-Si la variable d'environnement `RDVSP_DEVBOX_VM` est définie, tu tournes dans la VM devbox Lima créée par `scripts/devtools/lima-vm/host-create-vm.sh`. Implications :
+Si la variable d'environnement `RDVSP_DEVBOX` est définie, tu tournes dans la VM devbox Lima créée par `scripts/devtools/lima-vm/host-create-vm.sh`. Implications :
 
 - Postgres et Redis tournent localement dans la VM
 - Le dossier du projet est un mount RW
