@@ -34,7 +34,9 @@ echo 'eval "$($HOME/.local/bin/mise activate bash)"' >> ~/.bashrc
 export PATH="$HOME/.local/share/mise/shims:$PATH"
 
 # tweaks
-echo "cd $PROJECT_DIR" >> ~/.bashrc # toujours ouvrir le terminal dans le repo
+# Ne force le cd que hors contexte Orca : Orca ouvre déjà le terminal dans le
+# bon worktree (ORCA_WORKTREE_ID), et ce cd écraserait ce choix.
+echo "[ -z \"\${ORCA_WORKTREE_ID-}\" ] && cd $PROJECT_DIR" >> ~/.bashrc # toujours ouvrir le terminal dans le repo (sauf sous Orca)
 echo "export RDVSP_DEVBOX=${VM_NAME}" >> ~/.bashrc # permet aux agents d'identifier qu'ils tournent dans la VM
 
 # Installe Claude
