@@ -1,0 +1,39 @@
+- content_for :title, "Aide agents"
+
+- content_for :breadcrumbs do
+  = dsfr_breadcrumbs do |b|
+    = b.with_breadcrumb label: "Accueil", href: root_path
+    = b.with_breadcrumb label: "Contact", href: aide_aiguillage_role_path
+    = b.with_breadcrumb label: yield(:title)
+
+.fr-grid-row.fr-mb-4w
+  .fr-col-12.fr-col-md-8
+    - if @form.raison.blank?
+      = form_for @form, url: aide_aiguillage_agent_path, method: :GET, builder: Dsfr::FormBuilder do |f|
+        = f.dsfr_radio_buttons :raison, @form.raisons_options, legend: "Veuillez sélectionner la raison qui correspond le mieux à votre situation :"
+        = f.submit "Valider", class: "fr-btn"
+    - else
+      .fr-mb-4w
+        |> Votre situation :
+        b=> @form.raison_label
+        = link_to "modifier", aide_aiguillage_agent_path, class: "fr-link fr-link--icon-right fr-icon-pencil-line", title: "Modifier votre choix"
+
+    - if @form.should_show_contact_admin_message?
+      .fr-callout.fr-mb-2w
+        p Cette demande concerne la configuration de votre organisation, qui est gérée par l'administrateur de votre organisation.
+        - if current_agent
+          - current_agent.organisations.each do |organisation|
+            div.fr-mb-1w
+              = link_to "Voir les administrateurs de #{organisation.name}", admin_organisation_agents_path(organisation), class: "fr-btn"
+        - else
+          p Connectez-vous pour voir les administrateurs de votre organisation.
+          div
+            = link_to "Se connecter", new_agent_session_path, class: "fr-btn"
+
+    - if @form.raison.present?
+      p.fr-mt-4w
+        ' Vous ne trouvez pas votre réponse ?
+      div
+        = link_to "Contacter le support",
+          new_aide_demande_support_path(role: :agent, sujet: @form.raison_label),
+          class: "fr-btn fr-btn--secondary"
