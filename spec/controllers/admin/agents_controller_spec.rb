@@ -27,6 +27,16 @@ RSpec.describe Admin::AgentsController, type: :controller do
       agents = assigns(:agents).to_a
       expect(agents.index(agent1)).to be < agents.index(intervenant)
     end
+
+    it "lists admin agents before basic agents, even when the basic agent's name sorts first alphabetically" do
+      # last_name chosen to sort alphabetically before both admin agents, so this only passes
+      # if the "admin first" criterion takes priority over the alphabetical order
+      basic_agent = create(:agent, last_name: "Aaaaa", basic_role_in_organisations: [organisation])
+      subject
+      agents = assigns(:agents).to_a
+      expect(agents.index(agent)).to be < agents.index(basic_agent)
+      expect(agents.index(agent1)).to be < agents.index(basic_agent)
+    end
   end
 
   describe "DELETE #destroy" do
