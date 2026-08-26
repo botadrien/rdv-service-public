@@ -19,8 +19,6 @@ tr id="agent_#{agent.id}"
       end
     - else
       span.mr-2= agent.reverse_full_name
-    - if agent_role.admin?
-      = icon("fr-icon-user-setting-line", class: "fr-icon--sm fr-text-mention--grey", title: "Administrateur")
     = me_tag(agent)
   td.word-break-all
     = agent.email
