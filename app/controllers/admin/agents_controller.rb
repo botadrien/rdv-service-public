@@ -10,7 +10,11 @@ class Admin::AgentsController < AgentAuthController
     @agents = if index_params[:term].present?
                 @agents.search_by_text(index_params[:term])
               else
-                @agents.order(Arel.sql("(invitation_sent_at IS NOT NULL AND invitation_accepted_at IS NULL) DESC")).ordered_by_last_name
+                @agents
+                  .joins(:roles).where(agent_roles: { organisation_id: current_organisation.id })
+                  .order(Arel.sql("(agent_roles.access_level = 'admin') DESC"))
+                  .order(Arel.sql("(agents.invitation_sent_at IS NOT NULL AND agents.invitation_accepted_at IS NULL) DESC"))
+                  .ordered_by_last_name
               end
 
     @display_services = current_territory.services.any? || current_organisation.agents.joins(:agent_services).any?
